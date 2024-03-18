@@ -18,82 +18,61 @@ import io.airlift.compress.MalformedInputException;
 
 import java.util.Arrays;
 
-import static io.airlift.compress.zstd.Constants.COMPRESSED_BLOCK;
-import static io.airlift.compress.zstd.Constants.MAX_BLOCK_SIZE;
-import static io.airlift.compress.zstd.Constants.RAW_BLOCK;
-import static io.airlift.compress.zstd.Constants.RLE_BLOCK;
-import static io.airlift.compress.zstd.Constants.SIZE_OF_BLOCK_HEADER;
-import static io.airlift.compress.zstd.Constants.SIZE_OF_INT;
+import static io.airlift.compress.zstd.Constants.*;
 import static io.airlift.compress.zstd.UnsafeUtil.UNSAFE;
-import static io.airlift.compress.zstd.Util.checkArgument;
-import static io.airlift.compress.zstd.Util.checkState;
-import static io.airlift.compress.zstd.Util.fail;
-import static io.airlift.compress.zstd.Util.verify;
-import static io.airlift.compress.zstd.ZstdFrameDecompressor.MAX_WINDOW_SIZE;
-import static io.airlift.compress.zstd.ZstdFrameDecompressor.decodeRawBlock;
-import static io.airlift.compress.zstd.ZstdFrameDecompressor.decodeRleBlock;
-import static io.airlift.compress.zstd.ZstdFrameDecompressor.readFrameHeader;
-import static io.airlift.compress.zstd.ZstdFrameDecompressor.verifyMagic;
-import static java.lang.Math.max;
-import static java.lang.Math.min;
-import static java.lang.Math.toIntExact;
+import static io.airlift.compress.zstd.Util.*;
+import static io.airlift.compress.zstd.ZstdFrameDecompressor.*;
+import static java.lang.Math.*;
 import static java.lang.String.format;
 import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
 
-public class ZstdIncrementalFrameDecompressor
-{
-    private enum State {
-        INITIAL,
-        READ_FRAME_MAGIC,
-        READ_FRAME_HEADER,
-        READ_BLOCK_HEADER,
-        READ_BLOCK,
-        READ_BLOCK_CHECKSUM,
-        FLUSH_OUTPUT
-    }
-
+public class ZstdIncrementalFrameDecompressor {
     private final ZstdFrameDecompressor frameDecompressor = new ZstdFrameDecompressor();
-
     private State state = State.INITIAL;
     private FrameHeader frameHeader;
     private int blockHeader = -1;
-
     private int inputConsumed;
     private int outputBufferUsed;
-
     private int inputRequired;
     private int requestedOutputSize;
-
     // current window buffer
     private byte[] windowBase = new byte[0];
     private long windowAddress = ARRAY_BYTE_BASE_OFFSET;
     private long windowLimit = ARRAY_BYTE_BASE_OFFSET;
     private long windowPosition = ARRAY_BYTE_BASE_OFFSET;
-
     private XxHash64 partialHash;
 
-    public boolean isAtStoppingPoint()
-    {
+    private static int determineFrameHeaderSize(final Object inputBase, final long inputAddress, final long inputLimit) {
+        verify(inputAddress < inputLimit, inputAddress, "Not enough input bytes");
+
+        int frameHeaderDescriptor = UNSAFE.getByte(inputBase, inputAddress) & 0xFF;
+        boolean singleSegment = (frameHeaderDescriptor & 0b100000) != 0;
+        int dictionaryDescriptor = frameHeaderDescriptor & 0b11;
+        int contentSizeDescriptor = frameHeaderDescriptor >>> 6;
+
+        return 1 +
+                (singleSegment ? 0 : 1) +
+                (dictionaryDescriptor == 0 ? 0 : (1 << (dictionaryDescriptor - 1))) +
+                (contentSizeDescriptor == 0 ? (singleSegment ? 1 : 0) : (1 << contentSizeDescriptor));
+    }
+
+    public boolean isAtStoppingPoint() {
         return state == State.READ_FRAME_MAGIC;
     }
 
-    public int getInputConsumed()
-    {
+    public int getInputConsumed() {
         return inputConsumed;
     }
 
-    public int getOutputBufferUsed()
-    {
+    public int getOutputBufferUsed() {
         return outputBufferUsed;
     }
 
-    public int getInputRequired()
-    {
+    public int getInputRequired() {
         return inputRequired;
     }
 
-    public int getRequestedOutputSize()
-    {
+    public int getRequestedOutputSize() {
         return requestedOutputSize;
     }
 
@@ -103,8 +82,7 @@ public class ZstdIncrementalFrameDecompressor
             final long inputLimit,
             final byte[] outputArray,
             final int outputOffset,
-            final int outputLimit)
-    {
+            final int outputLimit) {
         if (inputRequired > inputLimit - inputAddress) {
             throw new IllegalArgumentException(format(
                     "Required %s input bytes, but only %s input bytes were supplied",
@@ -171,8 +149,7 @@ public class ZstdIncrementalFrameDecompressor
                 if (frameHeader.hasChecksum) {
                     partialHash = new XxHash64();
                 }
-            }
-            else {
+            } else {
                 verify(frameHeader != null, input, "Frame header is not set");
             }
 
@@ -184,8 +161,7 @@ public class ZstdIncrementalFrameDecompressor
                 }
                 if (inputBufferSize >= SIZE_OF_INT) {
                     blockHeader = UNSAFE.getInt(inputBase, input) & 0xFF_FFFF;
-                }
-                else {
+                } else {
                     blockHeader = UNSAFE.getByte(inputBase, input) & 0xFF |
                             (UNSAFE.getByte(inputBase, input + 1) & 0xFF) << 8 |
                             (UNSAFE.getByte(inputBase, input + 2) & 0xFF) << 16;
@@ -194,8 +170,7 @@ public class ZstdIncrementalFrameDecompressor
                 }
                 input += SIZE_OF_BLOCK_HEADER;
                 state = State.READ_BLOCK;
-            }
-            else {
+            } else {
                 verify(blockHeader != -1, input, "Block header is not set");
             }
 
@@ -244,8 +219,7 @@ public class ZstdIncrementalFrameDecompressor
                 windowPosition += decodedSize;
                 if (lastBlock) {
                     state = State.READ_BLOCK_CHECKSUM;
-                }
-                else {
+                } else {
                     state = State.READ_BLOCK_HEADER;
                 }
             }
@@ -280,26 +254,22 @@ public class ZstdIncrementalFrameDecompressor
         }
     }
 
-    private void reset()
-    {
+    private void reset() {
         frameDecompressor.reset();
 
         windowAddress = ARRAY_BYTE_BASE_OFFSET;
         windowPosition = ARRAY_BYTE_BASE_OFFSET;
     }
 
-    private int computeFlushableOutputSize(FrameHeader frameHeader)
-    {
+    private int computeFlushableOutputSize(FrameHeader frameHeader) {
         return max(0, toIntExact(windowPosition - windowAddress - (frameHeader == null ? 0 : frameHeader.computeRequiredOutputBufferLookBackSize())));
     }
 
-    private void resizeWindowBufferIfNecessary(FrameHeader frameHeader, int blockType, int blockSize)
-    {
+    private void resizeWindowBufferIfNecessary(FrameHeader frameHeader, int blockType, int blockSize) {
         int maxBlockOutput;
         if (blockType == RAW_BLOCK || blockType == RLE_BLOCK) {
             maxBlockOutput = blockSize;
-        }
-        else {
+        } else {
             maxBlockOutput = MAX_BLOCK_SIZE;
         }
 
@@ -326,8 +296,7 @@ public class ZstdIncrementalFrameDecompressor
                 int newWindowSize;
                 if (frameHeader.contentSize >= 0 && frameHeader.contentSize < requiredWindowSize) {
                     newWindowSize = toIntExact(frameHeader.contentSize);
-                }
-                else {
+                } else {
                     // double the current necessary window size
                     newWindowSize = (windowContentsSize + maxBlockOutput) * 2;
                     // limit to 4x the required window size (or block size if larger)
@@ -346,23 +315,7 @@ public class ZstdIncrementalFrameDecompressor
         }
     }
 
-    private static int determineFrameHeaderSize(final Object inputBase, final long inputAddress, final long inputLimit)
-    {
-        verify(inputAddress < inputLimit, inputAddress, "Not enough input bytes");
-
-        int frameHeaderDescriptor = UNSAFE.getByte(inputBase, inputAddress) & 0xFF;
-        boolean singleSegment = (frameHeaderDescriptor & 0b100000) != 0;
-        int dictionaryDescriptor = frameHeaderDescriptor & 0b11;
-        int contentSizeDescriptor = frameHeaderDescriptor >>> 6;
-
-        return 1 +
-                (singleSegment ? 0 : 1) +
-                (dictionaryDescriptor == 0 ? 0 : (1 << (dictionaryDescriptor - 1))) +
-                (contentSizeDescriptor == 0 ? (singleSegment ? 1 : 0) : (1 << contentSizeDescriptor));
-    }
-
-    private void requestOutput(long inputAddress, int outputOffset, long input, int output, int requestedOutputSize)
-    {
+    private void requestOutput(long inputAddress, int outputOffset, long input, int output, int requestedOutputSize) {
         updateInputOutputState(inputAddress, outputOffset, input, output);
 
         checkArgument(requestedOutputSize >= 0, "requestedOutputSize is negative");
@@ -371,8 +324,7 @@ public class ZstdIncrementalFrameDecompressor
         this.inputRequired = 0;
     }
 
-    private void inputRequired(long inputAddress, int outputOffset, long input, int output, int inputRequired)
-    {
+    private void inputRequired(long inputAddress, int outputOffset, long input, int output, int inputRequired) {
         updateInputOutputState(inputAddress, outputOffset, input, output);
 
         checkState(inputRequired >= 0, "inputRequired is negative");
@@ -381,11 +333,20 @@ public class ZstdIncrementalFrameDecompressor
         this.requestedOutputSize = 0;
     }
 
-    private void updateInputOutputState(long inputAddress, int outputOffset, long input, int output)
-    {
+    private void updateInputOutputState(long inputAddress, int outputOffset, long input, int output) {
         inputConsumed = (int) (input - inputAddress);
         checkState(inputConsumed >= 0, "inputConsumed is negative");
         outputBufferUsed = output - outputOffset;
         checkState(outputBufferUsed >= 0, "outputBufferUsed is negative");
+    }
+
+    private enum State {
+        INITIAL,
+        READ_FRAME_MAGIC,
+        READ_FRAME_HEADER,
+        READ_BLOCK_HEADER,
+        READ_BLOCK,
+        READ_BLOCK_CHECKSUM,
+        FLUSH_OUTPUT
     }
 }

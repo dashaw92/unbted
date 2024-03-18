@@ -19,7 +19,7 @@
 package com.unascribed.nbted;
 
 public enum JsonMode {
-	NONE,
-	BASIC,
-	ROUNDTRIP
+    NONE,
+    BASIC,
+    ROUNDTRIP
 }

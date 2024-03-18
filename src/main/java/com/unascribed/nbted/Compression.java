@@ -18,6 +18,9 @@
 
 package com.unascribed.nbted;
 
+import io.airlift.compress.zstd.ZstdInputStream;
+import io.airlift.compress.zstd.ZstdOutputStream;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -26,44 +29,52 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
 
-import io.airlift.compress.zstd.ZstdInputStream;
-import io.airlift.compress.zstd.ZstdOutputStream;
-
 public enum Compression {
-	NONE("None"),
-	DEFLATE("Deflate"),
-	GZIP("GZip"),
-	ZSTD("ZStandard"),
-	;
-	private final String name;
-	Compression(String name) {
-		this.name = name;
-	}
-	
-	public InputStream wrap(InputStream is) throws IOException {
-		if (is == null) return null;
-		switch (this) {
-			case NONE: return is;
-			case DEFLATE: return new InflaterInputStream(is);
-			case GZIP: return new GZIPInputStream(is);
-			case ZSTD: return new ZstdInputStream(is);
-			default: throw new AssertionError("missing case for "+this);
-		}
-	}
-	
-	public OutputStream wrap(OutputStream os) throws IOException {
-		if (os == null) return null;
-		switch (this) {
-			case NONE: return os;
-			case DEFLATE: return new DeflaterOutputStream(os);
-			case GZIP: return new GZIPOutputStream(os);
-			case ZSTD: return new ZstdOutputStream(os);
-			default: throw new AssertionError("missing case for "+this);
-		}
-	}
-	
-	@Override
-	public String toString() {
-		return name;
-	}
+    NONE("None"),
+    DEFLATE("Deflate"),
+    GZIP("GZip"),
+    ZSTD("ZStandard"),
+    ;
+    private final String name;
+
+    Compression(String name) {
+        this.name = name;
+    }
+
+    public InputStream wrap(InputStream is) throws IOException {
+        if (is == null) return null;
+        switch (this) {
+            case NONE:
+                return is;
+            case DEFLATE:
+                return new InflaterInputStream(is);
+            case GZIP:
+                return new GZIPInputStream(is);
+            case ZSTD:
+                return new ZstdInputStream(is);
+            default:
+                throw new AssertionError("missing case for " + this);
+        }
+    }
+
+    public OutputStream wrap(OutputStream os) throws IOException {
+        if (os == null) return null;
+        switch (this) {
+            case NONE:
+                return os;
+            case DEFLATE:
+                return new DeflaterOutputStream(os);
+            case GZIP:
+                return new GZIPOutputStream(os);
+            case ZSTD:
+                return new ZstdOutputStream(os);
+            default:
+                throw new AssertionError("missing case for " + this);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

@@ -24,6 +24,6 @@ package io.github.steveice10.opennbt.tag.array.support;
 
 public interface NBTArrayFake {
 
-	int getIndex();
-	
+    int getIndex();
+
 }

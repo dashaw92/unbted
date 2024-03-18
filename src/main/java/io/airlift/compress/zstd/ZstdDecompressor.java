@@ -26,14 +26,24 @@ import static java.util.Objects.requireNonNull;
 import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
 
 public class ZstdDecompressor
-        implements Decompressor
-{
+        implements Decompressor {
     private final ZstdFrameDecompressor decompressor = new ZstdFrameDecompressor();
+
+    public static long getDecompressedSize(byte[] input, int offset, int length) {
+        int baseAddress = ARRAY_BYTE_BASE_OFFSET + offset;
+        return ZstdFrameDecompressor.getDecompressedSize(input, baseAddress, baseAddress + length);
+    }
+
+    private static void verifyRange(byte[] data, int offset, int length) {
+        requireNonNull(data, "data is null");
+        if (offset < 0 || length < 0 || offset + length > data.length) {
+            throw new IllegalArgumentException(format("Invalid offset or length (%s, %s) in array of length %s", offset, length, data.length));
+        }
+    }
 
     @Override
     public int decompress(byte[] input, int inputOffset, int inputLength, byte[] output, int outputOffset, int maxOutputLength)
-            throws MalformedInputException
-    {
+            throws MalformedInputException {
         verifyRange(input, inputOffset, inputLength);
         verifyRange(output, outputOffset, maxOutputLength);
 
@@ -47,8 +57,7 @@ public class ZstdDecompressor
 
     @Override
     public void decompress(ByteBuffer inputBuffer, ByteBuffer outputBuffer)
-            throws MalformedInputException
-    {
+            throws MalformedInputException {
         // Java 9+ added an overload of various methods in ByteBuffer. When compiling with Java 11+ and targeting Java 8 bytecode
         // the resulting signatures are invalid for JDK 8, so accesses below result in NoSuchMethodError. Accessing the
         // methods through the interface class works around the problem
@@ -64,13 +73,11 @@ public class ZstdDecompressor
             long address = getAddress(input);
             inputAddress = address + input.position();
             inputLimit = address + input.limit();
-        }
-        else if (input.hasArray()) {
+        } else if (input.hasArray()) {
             inputBase = input.array();
             inputAddress = ARRAY_BYTE_BASE_OFFSET + input.arrayOffset() + input.position();
             inputLimit = ARRAY_BYTE_BASE_OFFSET + input.arrayOffset() + input.limit();
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("Unsupported input ByteBuffer implementation " + input.getClass().getName());
         }
 
@@ -82,13 +89,11 @@ public class ZstdDecompressor
             long address = getAddress(output);
             outputAddress = address + output.position();
             outputLimit = address + output.limit();
-        }
-        else if (output.hasArray()) {
+        } else if (output.hasArray()) {
             outputBase = output.array();
             outputAddress = ARRAY_BYTE_BASE_OFFSET + output.arrayOffset() + output.position();
             outputLimit = ARRAY_BYTE_BASE_OFFSET + output.arrayOffset() + output.limit();
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("Unsupported output ByteBuffer implementation " + output.getClass().getName());
         }
 
@@ -101,20 +106,6 @@ public class ZstdDecompressor
                 int written = decompressor.decompress(inputBase, inputAddress, inputLimit, outputBase, outputAddress, outputLimit);
                 output.position(output.position() + written);
             }
-        }
-    }
-
-    public static long getDecompressedSize(byte[] input, int offset, int length)
-    {
-        int baseAddress = ARRAY_BYTE_BASE_OFFSET + offset;
-        return ZstdFrameDecompressor.getDecompressedSize(input, baseAddress, baseAddress + length);
-    }
-
-    private static void verifyRange(byte[] data, int offset, int length)
-    {
-        requireNonNull(data, "data is null");
-        if (offset < 0 || length < 0 || offset + length > data.length) {
-            throw new IllegalArgumentException(format("Invalid offset or length (%s, %s) in array of length %s", offset, length, data.length));
         }
     }
 }

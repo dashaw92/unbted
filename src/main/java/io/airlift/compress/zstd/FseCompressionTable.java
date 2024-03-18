@@ -16,31 +16,48 @@ package io.airlift.compress.zstd;
 
 import static io.airlift.compress.zstd.FiniteStateEntropy.MAX_SYMBOL;
 
-class FseCompressionTable
-{
+class FseCompressionTable {
     private final short[] nextState;
     private final int[] deltaNumberOfBits;
     private final int[] deltaFindState;
 
     private int log2Size;
 
-    public FseCompressionTable(int maxTableLog, int maxSymbol)
-    {
+    public FseCompressionTable(int maxTableLog, int maxSymbol) {
         nextState = new short[1 << maxTableLog];
         deltaNumberOfBits = new int[maxSymbol + 1];
         deltaFindState = new int[maxSymbol + 1];
     }
 
-    public static FseCompressionTable newInstance(short[] normalizedCounts, int maxSymbol, int tableLog)
-    {
+    public static FseCompressionTable newInstance(short[] normalizedCounts, int maxSymbol, int tableLog) {
         FseCompressionTable result = new FseCompressionTable(tableLog, maxSymbol);
         result.initialize(normalizedCounts, maxSymbol, tableLog);
 
         return result;
     }
 
-    public void initializeRleTable(int symbol)
-    {
+    private static int calculateStep(int tableSize) {
+        return (tableSize >>> 1) + (tableSize >>> 3) + 3;
+    }
+
+    public static int spreadSymbols(short[] normalizedCounters, int maxSymbolValue, int tableSize, int highThreshold, byte[] symbols) {
+        int mask = tableSize - 1;
+        int step = calculateStep(tableSize);
+
+        int position = 0;
+        for (byte symbol = 0; symbol <= maxSymbolValue; symbol++) {
+            for (int i = 0; i < normalizedCounters[symbol]; i++) {
+                symbols[position] = symbol;
+                do {
+                    position = (position + step) & mask;
+                }
+                while (position > highThreshold);
+            }
+        }
+        return position;
+    }
+
+    public void initializeRleTable(int symbol) {
         log2Size = 0;
 
         nextState[0] = 0;
@@ -50,8 +67,7 @@ class FseCompressionTable
         deltaNumberOfBits[symbol] = 0;
     }
 
-    public void initialize(short[] normalizedCounts, int maxSymbol, int tableLog)
-    {
+    public void initialize(short[] normalizedCounts, int maxSymbol, int tableLog) {
         int tableSize = 1 << tableLog;
 
         byte[] table = new byte[tableSize]; // TODO: allocate in workspace
@@ -70,8 +86,7 @@ class FseCompressionTable
             if (normalizedCounts[i - 1] == -1) {  // Low probability symbol
                 cumulative[i] = cumulative[i - 1] + 1;
                 table[highThreshold--] = (byte) (i - 1);
-            }
-            else {
+            } else {
                 cumulative[i] = cumulative[i - 1] + normalizedCounts[i - 1];
             }
         }
@@ -114,46 +129,20 @@ class FseCompressionTable
         }
     }
 
-    public int begin(byte symbol)
-    {
+    public int begin(byte symbol) {
         int outputBits = (deltaNumberOfBits[symbol] + (1 << 15)) >>> 16;
         int base = ((outputBits << 16) - deltaNumberOfBits[symbol]) >>> outputBits;
         return nextState[base + deltaFindState[symbol]];
     }
 
-    public int encode(BitOutputStream stream, int state, int symbol)
-    {
+    public int encode(BitOutputStream stream, int state, int symbol) {
         int outputBits = (state + deltaNumberOfBits[symbol]) >>> 16;
         stream.addBits(state, outputBits);
         return nextState[(state >>> outputBits) + deltaFindState[symbol]];
     }
 
-    public void finish(BitOutputStream stream, int state)
-    {
+    public void finish(BitOutputStream stream, int state) {
         stream.addBits(state, log2Size);
         stream.flush();
-    }
-
-    private static int calculateStep(int tableSize)
-    {
-        return (tableSize >>> 1) + (tableSize >>> 3) + 3;
-    }
-
-    public static int spreadSymbols(short[] normalizedCounters, int maxSymbolValue, int tableSize, int highThreshold, byte[] symbols)
-    {
-        int mask = tableSize - 1;
-        int step = calculateStep(tableSize);
-
-        int position = 0;
-        for (byte symbol = 0; symbol <= maxSymbolValue; symbol++) {
-            for (int i = 0; i < normalizedCounters[symbol]; i++) {
-                symbols[position] = symbol;
-                do {
-                    position = (position + step) & mask;
-                }
-                while (position > highThreshold);
-            }
-        }
-        return position;
     }
 }

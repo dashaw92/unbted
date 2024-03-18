@@ -24,9 +24,12 @@ package io.github.steveice10.opennbt.tag;
 
 public interface NBTParent extends Iterable<NBTTag> {
 
-	boolean remove(NBTTag tag);
-	int size();
-	boolean isEmpty();
-	void clear();
-	
+    boolean remove(NBTTag tag);
+
+    int size();
+
+    boolean isEmpty();
+
+    void clear();
+
 }

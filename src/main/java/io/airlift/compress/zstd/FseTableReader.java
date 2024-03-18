@@ -20,13 +20,18 @@ import static io.airlift.compress.zstd.UnsafeUtil.UNSAFE;
 import static io.airlift.compress.zstd.Util.highestBit;
 import static io.airlift.compress.zstd.Util.verify;
 
-class FseTableReader
-{
+class FseTableReader {
     private final short[] nextSymbol = new short[MAX_SYMBOL + 1];
     private final short[] normalizedCounters = new short[MAX_SYMBOL + 1];
 
-    public int readFseTable(FiniteStateEntropy.Table table, Object inputBase, long inputAddress, long inputLimit, int maxSymbol, int maxTableLog)
-    {
+    public static void initializeRleTable(FiniteStateEntropy.Table table, byte value) {
+        table.log2Size = 0;
+        table.symbol[0] = value;
+        table.newState[0] = 0;
+        table.numberOfBits[0] = 0;
+    }
+
+    public int readFseTable(FiniteStateEntropy.Table table, Object inputBase, long inputAddress, long inputLimit, int maxSymbol, int maxTableLog) {
         // read table headers
         long input = inputAddress;
         verify(inputLimit - inputAddress >= 4, input, "Not enough input bytes");
@@ -56,8 +61,7 @@ class FseTableReader
                     if (input < inputLimit - 5) {
                         input += 2;
                         bitStream = (UNSAFE.getInt(inputBase, input) >>> bitCount);
-                    }
-                    else {
+                    } else {
                         // end of bit stream
                         bitStream >>>= 16;
                         bitCount += 16;
@@ -80,8 +84,7 @@ class FseTableReader
                     input += bitCount >>> 3;
                     bitCount &= 7;
                     bitStream = UNSAFE.getInt(inputBase, input) >>> bitCount;
-                }
-                else {
+                } else {
                     bitStream >>>= 2;
                 }
             }
@@ -92,8 +95,7 @@ class FseTableReader
             if ((bitStream & (threshold - 1)) < max) {
                 count = (short) (bitStream & (threshold - 1));
                 bitCount += numberOfBits - 1;
-            }
-            else {
+            } else {
                 count = (short) (bitStream & (2 * threshold - 1));
                 if (count >= threshold) {
                     count -= max;
@@ -113,8 +115,7 @@ class FseTableReader
             if ((input <= inputLimit - 7) || (input + (bitCount >> 3) <= inputLimit - 4)) {
                 input += bitCount >>> 3;
                 bitCount &= 7;
-            }
-            else {
+            } else {
                 bitCount -= (int) (8 * (inputLimit - 4 - input));
                 input = inputLimit - 4;
             }
@@ -139,8 +140,7 @@ class FseTableReader
             if (normalizedCounters[symbol] == -1) {
                 table.symbol[highThreshold--] = symbol;
                 nextSymbol[symbol] = 1;
-            }
-            else {
+            } else {
                 nextSymbol[symbol] = normalizedCounters[symbol];
             }
         }
@@ -158,13 +158,5 @@ class FseTableReader
         }
 
         return (int) (input - inputAddress);
-    }
-
-    public static void initializeRleTable(FiniteStateEntropy.Table table, byte value)
-    {
-        table.log2Size = 0;
-        table.symbol[0] = value;
-        table.newState[0] = 0;
-        table.numberOfBits[0] = 0;
     }
 }

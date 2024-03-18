@@ -18,31 +18,31 @@
 
 package com.unascribed.nbted;
 
-import java.util.Locale;
-
 import joptsimple.ValueConverter;
+
+import java.util.Locale;
 
 public class CaseInsensitiveEnumConverter<E extends Enum<E>> implements ValueConverter<E> {
 
-	private final Class<E> clazz;
-	
-	public CaseInsensitiveEnumConverter(Class<E> clazz) {
-		this.clazz = clazz;
-	}
-	
-	@Override
-	public E convert(String value) {
-		return E.valueOf(clazz, value.toUpperCase(Locale.ROOT));
-	}
+    private final Class<E> clazz;
 
-	@Override
-	public Class<? extends E> valueType() {
-		return clazz;
-	}
+    public CaseInsensitiveEnumConverter(Class<E> clazz) {
+        this.clazz = clazz;
+    }
 
-	@Override
-	public String valuePattern() {
-		return clazz.getSimpleName().toLowerCase(Locale.ROOT);
-	}
+    @Override
+    public E convert(String value) {
+        return E.valueOf(clazz, value.toUpperCase(Locale.ROOT));
+    }
+
+    @Override
+    public Class<? extends E> valueType() {
+        return clazz;
+    }
+
+    @Override
+    public String valuePattern() {
+        return clazz.getSimpleName().toLowerCase(Locale.ROOT);
+    }
 
 }

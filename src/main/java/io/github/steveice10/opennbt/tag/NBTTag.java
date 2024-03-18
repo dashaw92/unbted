@@ -22,75 +22,78 @@
 
 package io.github.steveice10.opennbt.tag;
 
+import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
+import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-
-import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
-import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
 
 /**
  * All tags must have a constructor that accepts (String, NBTParent) for
  * reflective construction during file load.
  */
 public abstract class NBTTag {
-	private String name;
-	private NBTParent parent;
+    private String name;
+    private NBTParent parent;
 
-	public NBTTag(String name) {
-		this.name = name;
-	}
+    public NBTTag(String name) {
+        this.name = name;
+    }
 
-	public final String getName() {
-		return this.name;
-	}
-	
-	public final NBTParent getParent() {
-		return parent;
-	}
-	
-	protected final void setParent(NBTParent parent) {
-		if (this.parent != null && parent != null && parent != this.parent) {
-			throw new IllegalStateException("Tag already has a parent, it must be removed from its old parent first");
-		}
-		this.parent = parent;
-	}
-	
-	public final void removeFromParent() {
-		if (parent != null) {
-			parent.remove(this);
-		}
-	}
-	
-	public abstract String stringValue();
+    public final String getName() {
+        return this.name;
+    }
 
-	public abstract void read(DataInput in) throws IOException;
-	public abstract void write(DataOutput out) throws IOException;
+    public final NBTParent getParent() {
+        return parent;
+    }
 
-	/**
-	 * Parses this tag from stringified NBT.
-	 *
-	 * @param in String to parse.
-	 */
-	public abstract void destringify(StringifiedNBTReader in) throws IOException;
+    protected final void setParent(NBTParent parent) {
+        if (this.parent != null && parent != null && parent != this.parent) {
+            throw new IllegalStateException("Tag already has a parent, it must be removed from its old parent first");
+        }
+        this.parent = parent;
+    }
 
-	/**
-	 * Write this tag as stringified NBT.
-	 */
-	public abstract void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException;
+    public final void removeFromParent() {
+        if (parent != null) {
+            parent.remove(this);
+        }
+    }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (obj == null) return false;
-		if (this == obj) return true;
-		if (obj.getClass() != this.getClass()) return false;
-		return equalsChecked((NBTTag)obj);
-	}
-	
-	protected abstract boolean equalsChecked(NBTTag that);
-	@Override
-	public abstract int hashCode();
-	@Override
-	public abstract String toString();
-	
+    public abstract String stringValue();
+
+    public abstract void read(DataInput in) throws IOException;
+
+    public abstract void write(DataOutput out) throws IOException;
+
+    /**
+     * Parses this tag from stringified NBT.
+     *
+     * @param in String to parse.
+     */
+    public abstract void destringify(StringifiedNBTReader in) throws IOException;
+
+    /**
+     * Write this tag as stringified NBT.
+     */
+    public abstract void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException;
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) return false;
+        if (this == obj) return true;
+        if (obj.getClass() != this.getClass()) return false;
+        return equalsChecked((NBTTag) obj);
+    }
+
+    protected abstract boolean equalsChecked(NBTTag that);
+
+    @Override
+    public abstract int hashCode();
+
+    @Override
+    public abstract String toString();
+
 }

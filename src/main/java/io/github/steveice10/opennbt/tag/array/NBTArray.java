@@ -28,8 +28,8 @@ import io.github.steveice10.opennbt.tag.NBTTag;
 
 public abstract class NBTArray extends NBTTag implements NBTParent, NBTIndexed {
 
-	public NBTArray(String name) {
-		super(name);
-	}
-	
+    public NBTArray(String name) {
+        super(name);
+    }
+
 }

@@ -38,185 +38,186 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 public class NBTIntArray extends NBTArray implements NBTParent {
-	private int[] value;
+    private int[] value;
 
-	public NBTIntArray(String name) {
-		this(name, new int[0]);
-	}
+    public NBTIntArray(String name) {
+        this(name, new int[0]);
+    }
 
-	public NBTIntArray(String name, int[] value) {
-		super(name);
-		this.value = value;
-	}
+    public NBTIntArray(String name, int[] value) {
+        super(name);
+        this.value = value;
+    }
 
-	public int[] getValue() {
-		return this.value.clone();
-	}
+    public int[] getValue() {
+        return this.value.clone();
+    }
 
-	public void setValue(int[] value) {
-		if (value == null) return;
-		this.value = value.clone();
-	}
+    public void setValue(int[] value) {
+        if (value == null) return;
+        this.value = value.clone();
+    }
 
-	public int getValue(int index) {
-		return this.value[index];
-	}
+    public int getValue(int index) {
+        return this.value[index];
+    }
 
-	public void setValue(int index, int value) {
-		this.value[index] = value;
-	}
-	
-	@Override
-	public String stringValue() {
-		return Arrays.toString(value);
-	}
+    public void setValue(int index, int value) {
+        this.value[index] = value;
+    }
 
-	@Override
-	public void read(DataInput in) throws IOException {
-		this.value = new int[in.readInt()];
-		for (int i = 0; i < this.value.length; i++) {
-			this.value[i] = in.readInt();
-		}
-	}
+    @Override
+    public String stringValue() {
+        return Arrays.toString(value);
+    }
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		out.writeInt(this.value.length);
-		for (int i = 0; i < this.value.length; i++) {
-			out.writeInt(this.value[i]);
-		}
-	}
+    @Override
+    public void read(DataInput in) throws IOException {
+        this.value = new int[in.readInt()];
+        for (int i = 0; i < this.value.length; i++) {
+            this.value[i] = in.readInt();
+        }
+    }
 
-	@Override
-	public void destringify(StringifiedNBTReader in) throws IOException {
-		String s = in.readUntil(true, ']');
-		String[] valueStrings = s.substring(s.indexOf(';') + 1, s.length() - 1).replaceAll(" ", "").split(",");
-		value = new int[valueStrings.length];
-		for (int i = 0; i < value.length; i++) {
-			value[i] = Integer.parseInt(valueStrings[i]);
-		}
-	}
+    @Override
+    public void write(DataOutput out) throws IOException {
+        out.writeInt(this.value.length);
+        for (int i = 0; i < this.value.length; i++) {
+            out.writeInt(this.value[i]);
+        }
+    }
 
-	@Override
-	public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
-		StringBuilder sb = new StringBuilder("[I; ");
-		for (int b : value) {
-			sb.append(b);
-			sb.append(',');
-			sb.append(' ');
-		}
-		sb.setLength(sb.length() - 2);
-		sb.append(']');
-		out.append(sb.toString());
-	}
-	
-	@Override
-	protected boolean equalsChecked(NBTTag that) {
-		return Arrays.equals(this.value, ((NBTIntArray)that).value);
-	}
+    @Override
+    public void destringify(StringifiedNBTReader in) throws IOException {
+        String s = in.readUntil(true, ']');
+        String[] valueStrings = s.substring(s.indexOf(';') + 1, s.length() - 1).replaceAll(" ", "").split(",");
+        value = new int[valueStrings.length];
+        for (int i = 0; i < value.length; i++) {
+            value[i] = Integer.parseInt(valueStrings[i]);
+        }
+    }
 
-	@Override
-	public int hashCode() {
-		return Arrays.hashCode(this.value);
-	}
+    @Override
+    public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
+        StringBuilder sb = new StringBuilder("[I; ");
+        for (int b : value) {
+            sb.append(b);
+            sb.append(',');
+            sb.append(' ');
+        }
+        sb.setLength(sb.length() - 2);
+        sb.append(']');
+        out.append(sb.toString());
+    }
 
-	@Override
-	public String toString() {
-		return "NBTIntArray"+Arrays.toString(this.value);
-	}
-	
-	@Override
-	public Class<? extends NBTTag> getElementType() {
-		return NBTInt.class;
-	}
+    @Override
+    protected boolean equalsChecked(NBTTag that) {
+        return Arrays.equals(this.value, ((NBTIntArray) that).value);
+    }
 
-	@Override
-	public Iterator<NBTTag> iterator() {
-		return new Iterator<NBTTag>() {
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(this.value);
+    }
 
-			private int idx = -1;
-			@Override
-			public boolean hasNext() {
-				return idx < value.length;
-			}
+    @Override
+    public String toString() {
+        return "NBTIntArray" + Arrays.toString(this.value);
+    }
 
-			@Override
-			public NBTTag next() {
-				idx++;
-				return new NBTFakeInt(NBTIntArray.this, idx);
-			}
-		};
-	}
-	
-	@Override
-	public NBTFakeInt get(int idx) {
-		if (idx < 0 || idx >= value.length) throw new ArrayIndexOutOfBoundsException(idx);
-		return new NBTFakeInt(this, idx);
-	}
-	
-	@Override
-	public boolean add(int idx, NBTTag tag) {
-		if (tag instanceof NBTInt) {
-			var ints = List.of(
-			/* int[] lhs = */ Arrays.copyOfRange(value, 0, idx),
-			/* int[] mid = */ new int[] {((NBTInt) tag).intValue()},
-			/* int[] rhs = */ Arrays.copyOfRange(value, idx, value.length)
-			);
-			value = ints.stream()
-					.flatMapToInt(Arrays::stream)
-					.toArray();
-			return true;
-		}
-		return false;
-	}
-	
-	@Override
-	public boolean add(NBTTag tag) {
-		if (tag instanceof NBTInt) {
-			value = Arrays.copyOf(value, value.length+1);
-			value[value.length-1] = ((NBTInt) tag).intValue();
-			return true;
-		}
-		return false;
-	}
-	
-	@Override
-	public NBTTag set(int idx, NBTTag tag) {
-		if (tag instanceof NBTInt) {
-			int orig = value[idx];
-			value[idx] = ((NBTInt) tag).intValue();
-			return new NBTInt("", orig);
-		}
-		throw new ClassCastException(tag.getClass().getSimpleName()+" is not NBTInt");
-	}
+    @Override
+    public Class<? extends NBTTag> getElementType() {
+        return NBTInt.class;
+    }
 
-	@Override
-	public boolean remove(NBTTag tag) {
-		if (tag instanceof NBTFakeInt) {
-			NBTFakeInt nfb = (NBTFakeInt)tag;
-			if (nfb.getParent() == this) {
-				int[] lhs = Arrays.copyOfRange(value, 0, nfb.getIndex());
-				int[] rhs = Arrays.copyOfRange(value, nfb.getIndex()+1, value.length);
-				value = IntStream.concat(Arrays.stream(lhs), Arrays.stream(rhs)).toArray();
-				return true;
-			}
-		}
-		return false;
-	}
+    @Override
+    public Iterator<NBTTag> iterator() {
+        return new Iterator<NBTTag>() {
 
-	@Override
-	public int size() {
-		return value.length;
-	}
+            private int idx = -1;
 
-	@Override
-	public boolean isEmpty() {
-		return value.length == 0;
-	}
+            @Override
+            public boolean hasNext() {
+                return idx < value.length;
+            }
 
-	@Override
-	public void clear() {
-		value = new int[0];
-	}
-	
+            @Override
+            public NBTTag next() {
+                idx++;
+                return new NBTFakeInt(NBTIntArray.this, idx);
+            }
+        };
+    }
+
+    @Override
+    public NBTFakeInt get(int idx) {
+        if (idx < 0 || idx >= value.length) throw new ArrayIndexOutOfBoundsException(idx);
+        return new NBTFakeInt(this, idx);
+    }
+
+    @Override
+    public boolean add(int idx, NBTTag tag) {
+        if (tag instanceof NBTInt) {
+            var ints = List.of(
+                    /* int[] lhs = */ Arrays.copyOfRange(value, 0, idx),
+                    /* int[] mid = */ new int[]{((NBTInt) tag).intValue()},
+                    /* int[] rhs = */ Arrays.copyOfRange(value, idx, value.length)
+            );
+            value = ints.stream()
+                    .flatMapToInt(Arrays::stream)
+                    .toArray();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean add(NBTTag tag) {
+        if (tag instanceof NBTInt) {
+            value = Arrays.copyOf(value, value.length + 1);
+            value[value.length - 1] = ((NBTInt) tag).intValue();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public NBTTag set(int idx, NBTTag tag) {
+        if (tag instanceof NBTInt) {
+            int orig = value[idx];
+            value[idx] = ((NBTInt) tag).intValue();
+            return new NBTInt("", orig);
+        }
+        throw new ClassCastException(tag.getClass().getSimpleName() + " is not NBTInt");
+    }
+
+    @Override
+    public boolean remove(NBTTag tag) {
+        if (tag instanceof NBTFakeInt) {
+            NBTFakeInt nfb = (NBTFakeInt) tag;
+            if (nfb.getParent() == this) {
+                int[] lhs = Arrays.copyOfRange(value, 0, nfb.getIndex());
+                int[] rhs = Arrays.copyOfRange(value, nfb.getIndex() + 1, value.length);
+                value = IntStream.concat(Arrays.stream(lhs), Arrays.stream(rhs)).toArray();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int size() {
+        return value.length;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return value.length == 0;
+    }
+
+    @Override
+    public void clear() {
+        value = new int[0];
+    }
+
 }

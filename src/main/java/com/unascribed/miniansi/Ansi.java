@@ -23,36 +23,36 @@ import java.io.UncheckedIOException;
 import java.util.List;
 
 public interface Ansi {
-	List<Integer> getCodes();
+    List<Integer> getCodes();
 
-	public static final class Utils {
-		public static String toString(Ansi... codes) {
-			StringBuilder sb = new StringBuilder();
-			toAppendableUnchecked(sb, codes);
-			return sb.toString();
-		}
-	
-		public static void toAppendableUnchecked(Appendable a, Ansi... codes) {
-			try {
-				toAppendable(a, codes);
-			} catch (IOException e) {
-				throw new UncheckedIOException(e);
-			}
-		}
-	
-		public static void toAppendable(Appendable a, Ansi... codes) throws IOException {
-			a.append("\u001B[");
-			boolean first = true;
-			for (Ansi code : codes) {
-				for (Integer i : code.getCodes()) {
-					if (!first) {
-						a.append(';');
-					}
-					a.append(i.toString());
-					first = false;
-				}
-			}
-			a.append('m');
-		}
-	}
+    public static final class Utils {
+        public static String toString(Ansi... codes) {
+            StringBuilder sb = new StringBuilder();
+            toAppendableUnchecked(sb, codes);
+            return sb.toString();
+        }
+
+        public static void toAppendableUnchecked(Appendable a, Ansi... codes) {
+            try {
+                toAppendable(a, codes);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        public static void toAppendable(Appendable a, Ansi... codes) throws IOException {
+            a.append("\u001B[");
+            boolean first = true;
+            for (Ansi code : codes) {
+                for (Integer i : code.getCodes()) {
+                    if (!first) {
+                        a.append(';');
+                    }
+                    a.append(i.toString());
+                    first = false;
+                }
+            }
+            a.append('m');
+        }
+    }
 }

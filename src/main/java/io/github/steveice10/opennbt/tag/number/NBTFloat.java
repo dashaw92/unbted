@@ -22,86 +22,113 @@
 
 package io.github.steveice10.opennbt.tag.number;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
 import io.github.steveice10.opennbt.tag.NBTTag;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
 public final class NBTFloat extends NBTNumber implements Comparable<NBTFloat> {
-	private float value;
+    private float value;
 
-	public NBTFloat(String name) {
-		this(name, 0);
-	}
+    public NBTFloat(String name) {
+        this(name, 0);
+    }
 
-	public NBTFloat(String name, float value) {
-		super(name);
-		this.value = value;
-	}
+    public NBTFloat(String name, float value) {
+        super(name);
+        this.value = value;
+    }
 
-	@Override
-	public Float numberValue() {
-		return this.value;
-	}
-	
-	@Override public byte byteValue() { return (byte)this.value; }
-	@Override public short shortValue() { return (short)this.value; }
-	@Override public int intValue() { return (int)this.value; }
-	@Override public long longValue() { return (long)this.value; }
-	@Override public float floatValue() { return this.value; }
-	@Override public double doubleValue() { return this.value; }
-	@Override public String stringValue() { return Float.toString(this.value); }
+    @Override
+    public Float numberValue() {
+        return this.value;
+    }
 
-	public void setValue(float value) {
-		this.value = value;
-	}
+    @Override
+    public byte byteValue() {
+        return (byte) this.value;
+    }
 
-	@Override
-	public void read(DataInput in) throws IOException {
-		this.value = in.readFloat();
-	}
+    @Override
+    public short shortValue() {
+        return (short) this.value;
+    }
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		out.writeFloat(this.value);
-	}
+    @Override
+    public int intValue() {
+        return (int) this.value;
+    }
 
-	@Override
-	public void destringify(StringifiedNBTReader in) throws IOException {
-		String s = in.readNextSingleValueString();
-		s = s.toLowerCase().substring(0, s.length() - 1);
-		value = Float.parseFloat(s);
-	}
+    @Override
+    public long longValue() {
+        return (long) this.value;
+    }
 
-	@Override
-	public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
-		StringBuilder sb = new StringBuilder();
-		sb.append(value);
-		sb.append('f');
-		out.append(sb.toString());
-	}
-	
-	@Override
-	public int compareTo(NBTFloat that) {
-		return Float.compare(this.value, that.value);
-	}
-	
-	@Override
-	protected boolean equalsChecked(NBTTag that) {
-		return this.value == ((NBTFloat)that).value;
-	}
+    @Override
+    public float floatValue() {
+        return this.value;
+    }
 
-	@Override
-	public int hashCode() {
-		return Float.hashCode(value);
-	}
+    @Override
+    public double doubleValue() {
+        return this.value;
+    }
 
-	@Override
-	public String toString() {
-		return "NBTFloat[value="+value+"]";
-	}
-	
+    @Override
+    public String stringValue() {
+        return Float.toString(this.value);
+    }
+
+    public void setValue(float value) {
+        this.value = value;
+    }
+
+    @Override
+    public void read(DataInput in) throws IOException {
+        this.value = in.readFloat();
+    }
+
+    @Override
+    public void write(DataOutput out) throws IOException {
+        out.writeFloat(this.value);
+    }
+
+    @Override
+    public void destringify(StringifiedNBTReader in) throws IOException {
+        String s = in.readNextSingleValueString();
+        s = s.toLowerCase().substring(0, s.length() - 1);
+        value = Float.parseFloat(s);
+    }
+
+    @Override
+    public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(value);
+        sb.append('f');
+        out.append(sb.toString());
+    }
+
+    @Override
+    public int compareTo(NBTFloat that) {
+        return Float.compare(this.value, that.value);
+    }
+
+    @Override
+    protected boolean equalsChecked(NBTTag that) {
+        return this.value == ((NBTFloat) that).value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Float.hashCode(value);
+    }
+
+    @Override
+    public String toString() {
+        return "NBTFloat[value=" + value + "]";
+    }
+
 }

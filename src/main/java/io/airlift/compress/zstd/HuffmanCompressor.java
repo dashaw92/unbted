@@ -18,14 +18,11 @@ import static io.airlift.compress.zstd.Constants.SIZE_OF_LONG;
 import static io.airlift.compress.zstd.Constants.SIZE_OF_SHORT;
 import static io.airlift.compress.zstd.UnsafeUtil.UNSAFE;
 
-class HuffmanCompressor
-{
-    private HuffmanCompressor()
-    {
+class HuffmanCompressor {
+    private HuffmanCompressor() {
     }
 
-    public static int compress4streams(Object outputBase, long outputAddress, int outputSize, Object inputBase, long inputAddress, int inputSize, HuffmanCompressionTable table)
-    {
+    public static int compress4streams(Object outputBase, long outputAddress, int outputSize, Object inputBase, long inputAddress, int inputSize, HuffmanCompressionTable table) {
         long input = inputAddress;
         long inputLimit = inputAddress + inputSize;
         long output = outputAddress;
@@ -82,8 +79,7 @@ class HuffmanCompressor
         return (int) (output - outputAddress);
     }
 
-    public static int compressSingleStream(Object outputBase, long outputAddress, int outputSize, Object inputBase, long inputAddress, int inputSize, HuffmanCompressionTable table)
-    {
+    public static int compressSingleStream(Object outputBase, long outputAddress, int outputSize, Object inputBase, long inputAddress, int inputSize, HuffmanCompressionTable table) {
         if (outputSize < SIZE_OF_LONG) {
             return 0;
         }

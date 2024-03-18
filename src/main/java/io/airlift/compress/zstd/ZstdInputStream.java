@@ -25,8 +25,7 @@ import static java.util.Objects.requireNonNull;
 import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
 
 public class ZstdInputStream
-        extends InputStream
-{
+        extends InputStream {
     private static final int MIN_BUFFER_SIZE = 4096;
 
     private final InputStream inputStream;
@@ -40,15 +39,13 @@ public class ZstdInputStream
 
     private boolean closed;
 
-    public ZstdInputStream(InputStream inputStream)
-    {
+    public ZstdInputStream(InputStream inputStream) {
         this.inputStream = requireNonNull(inputStream, "inputStream is null");
     }
 
     @Override
     public int read()
-            throws IOException
-    {
+            throws IOException {
         if (singleByteOutputBuffer == null) {
             singleByteOutputBuffer = new byte[1];
         }
@@ -62,8 +59,7 @@ public class ZstdInputStream
 
     @Override
     public int read(final byte[] outputBuffer, final int outputOffset, final int outputLength)
-            throws IOException
-    {
+            throws IOException {
         if (closed) {
             throw new IOException("Stream is closed");
         }
@@ -102,8 +98,7 @@ public class ZstdInputStream
     }
 
     private boolean fillInputBufferIfNecessary(int requiredSize)
-            throws IOException
-    {
+            throws IOException {
         if (inputBufferLimit - inputBufferOffset >= requiredSize) {
             return true;
         }
@@ -132,8 +127,7 @@ public class ZstdInputStream
 
     @Override
     public int available()
-            throws IOException
-    {
+            throws IOException {
         if (closed) {
             return 0;
         }
@@ -142,8 +136,7 @@ public class ZstdInputStream
 
     @Override
     public void close()
-            throws IOException
-    {
+            throws IOException {
         if (!closed) {
             closed = true;
             inputStream.close();

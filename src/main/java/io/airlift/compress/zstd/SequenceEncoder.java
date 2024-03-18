@@ -14,58 +14,42 @@
 
 package io.airlift.compress.zstd;
 
-import static io.airlift.compress.zstd.Constants.DEFAULT_MAX_OFFSET_CODE_SYMBOL;
-import static io.airlift.compress.zstd.Constants.LITERALS_LENGTH_BITS;
-import static io.airlift.compress.zstd.Constants.LITERAL_LENGTH_TABLE_LOG;
-import static io.airlift.compress.zstd.Constants.LONG_NUMBER_OF_SEQUENCES;
-import static io.airlift.compress.zstd.Constants.MATCH_LENGTH_BITS;
-import static io.airlift.compress.zstd.Constants.MATCH_LENGTH_TABLE_LOG;
-import static io.airlift.compress.zstd.Constants.MAX_LITERALS_LENGTH_SYMBOL;
-import static io.airlift.compress.zstd.Constants.MAX_MATCH_LENGTH_SYMBOL;
-import static io.airlift.compress.zstd.Constants.MAX_OFFSET_CODE_SYMBOL;
-import static io.airlift.compress.zstd.Constants.OFFSET_TABLE_LOG;
-import static io.airlift.compress.zstd.Constants.SEQUENCE_ENCODING_BASIC;
-import static io.airlift.compress.zstd.Constants.SEQUENCE_ENCODING_COMPRESSED;
-import static io.airlift.compress.zstd.Constants.SEQUENCE_ENCODING_RLE;
-import static io.airlift.compress.zstd.Constants.SIZE_OF_SHORT;
+import static io.airlift.compress.zstd.Constants.*;
 import static io.airlift.compress.zstd.FiniteStateEntropy.optimalTableLog;
 import static io.airlift.compress.zstd.UnsafeUtil.UNSAFE;
 import static io.airlift.compress.zstd.Util.checkArgument;
 
-class SequenceEncoder
-{
+class SequenceEncoder {
     private static final int DEFAULT_LITERAL_LENGTH_NORMALIZED_COUNTS_LOG = 6;
     private static final short[] DEFAULT_LITERAL_LENGTH_NORMALIZED_COUNTS = {4, 3, 2, 2, 2, 2, 2, 2,
-                                                                             2, 2, 2, 2, 2, 1, 1, 1,
-                                                                             2, 2, 2, 2, 2, 2, 2, 2,
-                                                                             2, 3, 2, 1, 1, 1, 1, 1,
-                                                                             -1, -1, -1, -1};
+            2, 2, 2, 2, 2, 1, 1, 1,
+            2, 2, 2, 2, 2, 2, 2, 2,
+            2, 3, 2, 1, 1, 1, 1, 1,
+            -1, -1, -1, -1};
 
     private static final int DEFAULT_MATCH_LENGTH_NORMALIZED_COUNTS_LOG = 6;
     private static final short[] DEFAULT_MATCH_LENGTH_NORMALIZED_COUNTS = {1, 4, 3, 2, 2, 2, 2, 2,
-                                                                           2, 1, 1, 1, 1, 1, 1, 1,
-                                                                           1, 1, 1, 1, 1, 1, 1, 1,
-                                                                           1, 1, 1, 1, 1, 1, 1, 1,
-                                                                           1, 1, 1, 1, 1, 1, 1, 1,
-                                                                           1, 1, 1, 1, 1, 1, -1, -1,
-                                                                           -1, -1, -1, -1, -1};
+            2, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, -1, -1,
+            -1, -1, -1, -1, -1};
 
     private static final int DEFAULT_OFFSET_NORMALIZED_COUNTS_LOG = 5;
     private static final short[] DEFAULT_OFFSET_NORMALIZED_COUNTS = {1, 1, 1, 1, 1, 1, 2, 2,
-                                                                     2, 1, 1, 1, 1, 1, 1, 1,
-                                                                     1, 1, 1, 1, 1, 1, 1, 1,
-                                                                     -1, -1, -1, -1, -1};
+            2, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1,
+            -1, -1, -1, -1, -1};
 
     private static final FseCompressionTable DEFAULT_LITERAL_LENGTHS_TABLE = FseCompressionTable.newInstance(DEFAULT_LITERAL_LENGTH_NORMALIZED_COUNTS, MAX_LITERALS_LENGTH_SYMBOL, DEFAULT_LITERAL_LENGTH_NORMALIZED_COUNTS_LOG);
     private static final FseCompressionTable DEFAULT_MATCH_LENGTHS_TABLE = FseCompressionTable.newInstance(DEFAULT_MATCH_LENGTH_NORMALIZED_COUNTS, MAX_MATCH_LENGTH_SYMBOL, DEFAULT_LITERAL_LENGTH_NORMALIZED_COUNTS_LOG);
     private static final FseCompressionTable DEFAULT_OFFSETS_TABLE = FseCompressionTable.newInstance(DEFAULT_OFFSET_NORMALIZED_COUNTS, DEFAULT_MAX_OFFSET_CODE_SYMBOL, DEFAULT_OFFSET_NORMALIZED_COUNTS_LOG);
 
-    private SequenceEncoder()
-    {
+    private SequenceEncoder() {
     }
 
-    public static int compressSequences(Object outputBase, final long outputAddress, int outputSize, SequenceStore sequences, CompressionParameters.Strategy strategy, SequenceEncodingContext workspace)
-    {
+    public static int compressSequences(Object outputBase, final long outputAddress, int outputSize, SequenceStore sequences, CompressionParameters.Strategy strategy, SequenceEncodingContext workspace) {
         long output = outputAddress;
         long outputLimit = outputAddress + outputSize;
 
@@ -75,13 +59,11 @@ class SequenceEncoder
         if (sequenceCount < 0x7F) {
             UNSAFE.putByte(outputBase, output, (byte) sequenceCount);
             output++;
-        }
-        else if (sequenceCount < LONG_NUMBER_OF_SEQUENCES) {
+        } else if (sequenceCount < LONG_NUMBER_OF_SEQUENCES) {
             UNSAFE.putByte(outputBase, output, (byte) (sequenceCount >>> 8 | 0x80));
             UNSAFE.putByte(outputBase, output + 1, (byte) sequenceCount);
             output += SIZE_OF_SHORT;
-        }
-        else {
+        } else {
             UNSAFE.putByte(outputBase, output, (byte) 0xFF);
             output++;
             UNSAFE.putShort(outputBase, output, (short) (sequenceCount - LONG_NUMBER_OF_SEQUENCES));
@@ -218,8 +200,7 @@ class SequenceEncoder
         return (int) (output - outputAddress);
     }
 
-    private static int buildCompressionTable(FseCompressionTable table, Object outputBase, long output, long outputLimit, int sequenceCount, int maxTableLog, byte[] codes, int[] counts, int maxSymbol, short[] normalizedCounts)
-    {
+    private static int buildCompressionTable(FseCompressionTable table, Object outputBase, long output, long outputLimit, int sequenceCount, int maxTableLog, byte[] codes, int[] counts, int maxSymbol, short[] normalizedCounts) {
         int tableLog = optimalTableLog(maxTableLog, sequenceCount, maxSymbol);
 
         // this is a minor optimization. The last symbol is embedded in the initial FSE state, so it's not part of the bitstream. We can omit it from the
@@ -242,8 +223,7 @@ class SequenceEncoder
             FseCompressionTable matchLengthTable,
             FseCompressionTable offsetsTable,
             FseCompressionTable literalLengthTable,
-            SequenceStore sequences)
-    {
+            SequenceStore sequences) {
         byte[] matchLengthCodes = sequences.matchLengthCodes;
         byte[] offsetCodes = sequences.offsetCodes;
         byte[] literalLengthCodes = sequences.literalLengthCodes;
@@ -311,8 +291,7 @@ class SequenceEncoder
             int sequenceCount,
             int defaultNormalizedCountsLog,
             boolean isDefaultTableAllowed,
-            CompressionParameters.Strategy strategy)
-    {
+            CompressionParameters.Strategy strategy) {
         if (largestCount == sequenceCount) { // => all entries are equal
             if (isDefaultTableAllowed && sequenceCount <= 2) {
                 /* Prefer set_basic over set_rle when there are 2 or fewer symbols,
@@ -341,8 +320,7 @@ class SequenceEncoder
                     return SEQUENCE_ENCODING_BASIC;
                 }
             }
-        }
-        else {
+        } else {
             // TODO implement when other strategies are supported
             throw new UnsupportedOperationException("not yet implemented");
         }

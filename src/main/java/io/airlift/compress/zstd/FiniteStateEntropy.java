@@ -15,29 +15,24 @@
 package io.airlift.compress.zstd;
 
 import static io.airlift.compress.zstd.BitInputStream.peekBits;
-import static io.airlift.compress.zstd.Constants.SIZE_OF_INT;
-import static io.airlift.compress.zstd.Constants.SIZE_OF_LONG;
-import static io.airlift.compress.zstd.Constants.SIZE_OF_SHORT;
+import static io.airlift.compress.zstd.Constants.*;
 import static io.airlift.compress.zstd.UnsafeUtil.UNSAFE;
 import static io.airlift.compress.zstd.Util.checkArgument;
 import static io.airlift.compress.zstd.Util.verify;
 import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
 
-class FiniteStateEntropy
-{
+class FiniteStateEntropy {
     public static final int MAX_SYMBOL = 255;
     public static final int MAX_TABLE_LOG = 12;
     public static final int MIN_TABLE_LOG = 5;
 
-    private static final int[] REST_TO_BEAT = new int[] {0, 473195, 504333, 520860, 550000, 700000, 750000, 830000};
+    private static final int[] REST_TO_BEAT = new int[]{0, 473195, 504333, 520860, 550000, 700000, 750000, 830000};
     private static final short UNASSIGNED = -2;
 
-    private FiniteStateEntropy()
-    {
+    private FiniteStateEntropy() {
     }
 
-    public static int decompress(FiniteStateEntropy.Table table, final Object inputBase, final long inputAddress, final long inputLimit, byte[] outputBuffer)
-    {
+    public static int decompress(FiniteStateEntropy.Table table, final Object inputBase, final long inputAddress, final long inputLimit, byte[] outputBuffer) {
         final Object outputBase = outputBuffer;
         final long outputAddress = ARRAY_BYTE_BASE_OFFSET;
         final long outputLimit = outputAddress + outputBuffer.length;
@@ -151,13 +146,11 @@ class FiniteStateEntropy
         return (int) (output - outputAddress);
     }
 
-    public static int compress(Object outputBase, long outputAddress, int outputSize, byte[] input, int inputSize, FseCompressionTable table)
-    {
+    public static int compress(Object outputBase, long outputAddress, int outputSize, byte[] input, int inputSize, FseCompressionTable table) {
         return compress(outputBase, outputAddress, outputSize, input, ARRAY_BYTE_BASE_OFFSET, inputSize, table);
     }
 
-    public static int compress(Object outputBase, long outputAddress, int outputSize, Object inputBase, long inputAddress, int inputSize, FseCompressionTable table)
-    {
+    public static int compress(Object outputBase, long outputAddress, int outputSize, Object inputBase, long inputAddress, int inputSize, FseCompressionTable table) {
         checkArgument(outputSize >= SIZE_OF_LONG, "Output buffer too small");
 
         final long start = inputAddress;
@@ -185,8 +178,7 @@ class FiniteStateEntropy
             state1 = table.encode(stream, state1, UNSAFE.getByte(inputBase, input));
 
             stream.flush();
-        }
-        else {
+        } else {
             input--;
             state2 = table.begin(UNSAFE.getByte(inputBase, input));
 
@@ -236,8 +228,7 @@ class FiniteStateEntropy
         return stream.close();
     }
 
-    public static int optimalTableLog(int maxTableLog, int inputSize, int maxSymbol)
-    {
+    public static int optimalTableLog(int maxTableLog, int inputSize, int maxSymbol) {
         if (inputSize <= 1) {
             throw new IllegalArgumentException(); // not supported. Use RLE instead
         }
@@ -255,8 +246,7 @@ class FiniteStateEntropy
         return result;
     }
 
-    public static int normalizeCounts(short[] normalizedCounts, int tableLog, int[] counts, int total, int maxSymbol)
-    {
+    public static int normalizeCounts(short[] normalizedCounts, int tableLog, int[] counts, int total, int maxSymbol) {
         checkArgument(tableLog >= MIN_TABLE_LOG, "Unsupported FSE table size");
         checkArgument(tableLog <= MAX_TABLE_LOG, "FSE table size too large");
         checkArgument(tableLog >= Util.minTableLog(total, maxSymbol), "FSE table size too small");
@@ -282,8 +272,7 @@ class FiniteStateEntropy
             if (counts[symbol] <= lowThreshold) {
                 normalizedCounts[symbol] = -1;
                 stillToDistribute--;
-            }
-            else {
+            } else {
                 short probability = (short) ((counts[symbol] * step) >>> scale);
                 if (probability < 8) {
                     long restToBeat = vstep * REST_TO_BEAT[probability];
@@ -305,16 +294,14 @@ class FiniteStateEntropy
             // corner case. Need another normalization method
             // TODO size_t const errorCode = FSE_normalizeM2(normalizedCounter, tableLog, count, total, maxSymbolValue);
             normalizeCounts2(normalizedCounts, tableLog, counts, total, maxSymbol);
-        }
-        else {
+        } else {
             normalizedCounts[largest] += (short) stillToDistribute;
         }
 
         return tableLog;
     }
 
-    private static int normalizeCounts2(short[] normalizedCounts, int tableLog, int[] counts, int total, int maxSymbol)
-    {
+    private static int normalizeCounts2(short[] normalizedCounts, int tableLog, int[] counts, int total, int maxSymbol) {
         int distributed = 0;
 
         int lowThreshold = total >>> tableLog; // minimum count below which frequency in the normalized table is "too small" (~ < 1)
@@ -323,18 +310,15 @@ class FiniteStateEntropy
         for (int i = 0; i <= maxSymbol; i++) {
             if (counts[i] == 0) {
                 normalizedCounts[i] = 0;
-            }
-            else if (counts[i] <= lowThreshold) {
+            } else if (counts[i] <= lowThreshold) {
                 normalizedCounts[i] = -1;
                 distributed++;
                 total -= counts[i];
-            }
-            else if (counts[i] <= lowOne) {
+            } else if (counts[i] <= lowOne) {
                 normalizedCounts[i] = 1;
                 distributed++;
                 total -= counts[i];
-            }
-            else {
+            } else {
                 normalizedCounts[i] = UNASSIGNED;
             }
         }
@@ -405,8 +389,7 @@ class FiniteStateEntropy
         return 0;
     }
 
-    public static int writeNormalizedCounts(Object outputBase, long outputAddress, int outputSize, short[] normalizedCounts, int maxSymbol, int tableLog)
-    {
+    public static int writeNormalizedCounts(Object outputBase, long outputAddress, int outputSize, short[] normalizedCounts, int maxSymbol, int tableLog) {
         checkArgument(tableLog <= MAX_TABLE_LOG, "FSE table too large");
         checkArgument(tableLog >= MIN_TABLE_LOG, "FSE table too small");
 
@@ -521,23 +504,20 @@ class FiniteStateEntropy
         return (int) (output - outputAddress);
     }
 
-    public static final class Table
-    {
-        int log2Size;
+    public static final class Table {
         final int[] newState;
         final byte[] symbol;
         final byte[] numberOfBits;
+        int log2Size;
 
-        public Table(int log2Capacity)
-        {
+        public Table(int log2Capacity) {
             int capacity = 1 << log2Capacity;
             newState = new int[capacity];
             symbol = new byte[capacity];
             numberOfBits = new byte[capacity];
         }
 
-        public Table(int log2Size, int[] newState, byte[] symbol, byte[] numberOfBits)
-        {
+        public Table(int log2Size, int[] newState, byte[] symbol, byte[] numberOfBits) {
             int size = 1 << log2Size;
             if (newState.length != size || symbol.length != size || numberOfBits.length != size) {
                 throw new IllegalArgumentException("Expected arrays to match provided size");

@@ -28,17 +28,13 @@ import static java.util.Objects.requireNonNull;
 import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
 
 public class ZstdOutputStream
-        extends OutputStream
-{
+        extends OutputStream {
     private final OutputStream outputStream;
     private final CompressionContext context;
     private final int maxBufferSize;
-
-    private XxHash64 partialHash;
-
-    private byte[] uncompressed = new byte[0];
     private final byte[] compressed;
-
+    private XxHash64 partialHash;
+    private byte[] uncompressed = new byte[0];
     // start of unprocessed data in uncompressed buffer
     private int uncompressedOffset;
     // end of unprocessed data in uncompressed buffer
@@ -47,8 +43,7 @@ public class ZstdOutputStream
     private boolean closed;
 
     public ZstdOutputStream(OutputStream outputStream)
-            throws IOException
-    {
+            throws IOException {
         this.outputStream = requireNonNull(outputStream, "outputStream is null");
         this.context = new CompressionContext(CompressionParameters.compute(DEFAULT_COMPRESSION_LEVEL, -1), ARRAY_BYTE_BASE_OFFSET, Integer.MAX_VALUE);
         this.maxBufferSize = context.parameters.getWindowSize() * 4;
@@ -62,8 +57,7 @@ public class ZstdOutputStream
 
     @Override
     public void write(int b)
-            throws IOException
-    {
+            throws IOException {
         if (closed) {
             throw new IOException("Stream is closed");
         }
@@ -77,15 +71,13 @@ public class ZstdOutputStream
 
     @Override
     public void write(byte[] buffer)
-            throws IOException
-    {
+            throws IOException {
         write(buffer, 0, buffer.length);
     }
 
     @Override
     public void write(byte[] buffer, int offset, int length)
-            throws IOException
-    {
+            throws IOException {
         if (closed) {
             throw new IOException("Stream is closed");
         }
@@ -104,8 +96,7 @@ public class ZstdOutputStream
         }
     }
 
-    private void growBufferIfNecessary(int length)
-    {
+    private void growBufferIfNecessary(int length) {
         if (uncompressedPosition + length <= uncompressed.length || uncompressed.length >= maxBufferSize) {
             return;
         }
@@ -120,8 +111,7 @@ public class ZstdOutputStream
     }
 
     private void compressIfNecessary()
-            throws IOException
-    {
+            throws IOException {
         // only flush when the buffer if is max size, full, and the buffer is larger than the window and one additional block
         if (uncompressed.length >= maxBufferSize &&
                 uncompressedPosition == uncompressed.length &&
@@ -132,16 +122,14 @@ public class ZstdOutputStream
 
     // visible for Hadoop stream
     void finishWithoutClosingSource()
-            throws IOException
-    {
+            throws IOException {
         writeChunk(true);
         closed = true;
     }
 
     @Override
     public void close()
-            throws IOException
-    {
+            throws IOException {
         writeChunk(true);
 
         closed = true;
@@ -149,14 +137,12 @@ public class ZstdOutputStream
     }
 
     private void writeChunk(boolean lastChunk)
-            throws IOException
-    {
+            throws IOException {
         int chunkSize;
         if (lastChunk) {
             // write all the data
             chunkSize = uncompressedPosition - uncompressedOffset;
-        }
-        else {
+        } else {
             int blockSize = context.parameters.getBlockSize();
             chunkSize = uncompressedPosition - uncompressedOffset - context.parameters.getWindowSize() - blockSize;
             checkState(chunkSize > blockSize, "Must write at least one full block");
@@ -205,8 +191,7 @@ public class ZstdOutputStream
             outputStream.write(hash >> 8);
             outputStream.write(hash >> 16);
             outputStream.write(hash >> 24);
-        }
-        else {
+        } else {
             // slide window forward, leaving the entire window and the unprocessed data
             int slideWindowSize = uncompressedOffset - context.parameters.getWindowSize();
             context.slideWindow(slideWindowSize);

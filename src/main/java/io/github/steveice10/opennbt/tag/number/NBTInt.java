@@ -22,88 +22,115 @@
 
 package io.github.steveice10.opennbt.tag.number;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
 import io.github.steveice10.opennbt.tag.NBTTag;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
 public class NBTInt extends NBTNumber implements Comparable<NBTInt> {
-	private int value;
+    private int value;
 
-	public NBTInt(String name) {
-		this(name, 0);
-	}
+    public NBTInt(String name) {
+        this(name, 0);
+    }
 
-	public NBTInt(String name, int value) {
-		super(name);
-		this.value = value;
-	}
+    public NBTInt(String name, int value) {
+        super(name);
+        this.value = value;
+    }
 
-	protected int getValue() {
-		return value;
-	}
+    protected int getValue() {
+        return value;
+    }
 
-	@Override
-	public Integer numberValue() {
-		return this.getValue();
-	}
-	
-	@Override public byte byteValue() { return (byte)this.getValue(); }
-	@Override public short shortValue() { return (short)this.getValue(); }
-	@Override public int intValue() { return this.getValue(); }
-	@Override public long longValue() { return this.getValue(); }
-	@Override public float floatValue() { return this.getValue(); }
-	@Override public double doubleValue() { return this.getValue(); }
-	@Override public String stringValue() { return Integer.toString(this.getValue()); }
+    public void setValue(int value) {
+        this.value = value;
+    }
 
-	public void setValue(int value) {
-		this.value = value;
-	}
+    @Override
+    public Integer numberValue() {
+        return this.getValue();
+    }
 
-	@Override
-	public void read(DataInput in) throws IOException {
-		this.value = in.readInt();
-	}
+    @Override
+    public byte byteValue() {
+        return (byte) this.getValue();
+    }
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		out.writeInt(this.getValue());
-	}
+    @Override
+    public short shortValue() {
+        return (short) this.getValue();
+    }
 
-	@Override
-	public void destringify(StringifiedNBTReader in) throws IOException {
-		String s = in.readNextSingleValueString();
-		value = Integer.parseInt(s);
-	}
+    @Override
+    public int intValue() {
+        return this.getValue();
+    }
 
-	@Override
-	public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
-		StringBuilder sb = new StringBuilder();
-		sb.append(value);
-		out.append(sb.toString());
-	}
-	
-	@Override
-	public int compareTo(NBTInt that) {
-		return Integer.compare(this.getValue(), that.getValue());
-	}
-	
-	@Override
-	protected boolean equalsChecked(NBTTag that) {
-		return this.getValue() == ((NBTInt)that).getValue();
-	}
+    @Override
+    public long longValue() {
+        return this.getValue();
+    }
 
-	@Override
-	public int hashCode() {
-		return Integer.hashCode(getValue());
-	}
+    @Override
+    public float floatValue() {
+        return this.getValue();
+    }
 
-	@Override
-	public String toString() {
-		return "NBTInt[value="+getValue()+"]";
-	}
-	
+    @Override
+    public double doubleValue() {
+        return this.getValue();
+    }
+
+    @Override
+    public String stringValue() {
+        return Integer.toString(this.getValue());
+    }
+
+    @Override
+    public void read(DataInput in) throws IOException {
+        this.value = in.readInt();
+    }
+
+    @Override
+    public void write(DataOutput out) throws IOException {
+        out.writeInt(this.getValue());
+    }
+
+    @Override
+    public void destringify(StringifiedNBTReader in) throws IOException {
+        String s = in.readNextSingleValueString();
+        value = Integer.parseInt(s);
+    }
+
+    @Override
+    public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(value);
+        out.append(sb.toString());
+    }
+
+    @Override
+    public int compareTo(NBTInt that) {
+        return Integer.compare(this.getValue(), that.getValue());
+    }
+
+    @Override
+    protected boolean equalsChecked(NBTTag that) {
+        return this.getValue() == ((NBTInt) that).getValue();
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(getValue());
+    }
+
+    @Override
+    public String toString() {
+        return "NBTInt[value=" + getValue() + "]";
+    }
+
 }

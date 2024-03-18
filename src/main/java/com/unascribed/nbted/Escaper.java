@@ -32,7 +32,7 @@ public final class Escaper {
 
     public String escape(String input) {
         StringBuilder current = new StringBuilder();
-        for(char c : input.toCharArray()) {
+        for (char c : input.toCharArray()) {
             current.append(escapes.getOrDefault(c, "" + c));
         }
         return current.toString();

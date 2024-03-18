@@ -27,29 +27,29 @@ import io.github.steveice10.opennbt.tag.number.NBTLong;
 
 public class NBTFakeLong extends NBTLong implements NBTArrayFake {
 
-	private final NBTLongArray parent;
-	private final int index;
-	
-	public NBTFakeLong(NBTLongArray parent, int index) {
-		super("");
-		this.parent = parent;
-		this.index = index;
-		setParent(parent);
-	}
-	
-	@Override
-	public int getIndex() {
-		return index;
-	}
-	
-	@Override
-	protected long getValue() {
-		return parent.getValue(index);
-	}
-	
-	@Override
-	public void setValue(long value) {
-		parent.setValue(index, value);
-	}
-	
+    private final NBTLongArray parent;
+    private final int index;
+
+    public NBTFakeLong(NBTLongArray parent, int index) {
+        super("");
+        this.parent = parent;
+        this.index = index;
+        setParent(parent);
+    }
+
+    @Override
+    public int getIndex() {
+        return index;
+    }
+
+    @Override
+    protected long getValue() {
+        return parent.getValue(index);
+    }
+
+    @Override
+    public void setValue(long value) {
+        parent.setValue(index, value);
+    }
+
 }

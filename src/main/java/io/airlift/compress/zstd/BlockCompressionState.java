@@ -16,8 +16,7 @@ package io.airlift.compress.zstd;
 
 import java.util.Arrays;
 
-class BlockCompressionState
-{
+class BlockCompressionState {
     public final int[] hashTable;
     public final int[] chainTable;
 
@@ -26,15 +25,13 @@ class BlockCompressionState
     // starting point of the window with respect to baseAddress
     private int windowBaseOffset;
 
-    public BlockCompressionState(CompressionParameters parameters, long baseAddress)
-    {
+    public BlockCompressionState(CompressionParameters parameters, long baseAddress) {
         this.baseAddress = baseAddress;
         hashTable = new int[1 << parameters.getHashLog()];
         chainTable = new int[1 << parameters.getChainLog()]; // TODO: chain table not used by Strategy.FAST
     }
 
-    public void slideWindow(int slideWindowSize)
-    {
+    public void slideWindow(int slideWindowSize) {
         for (int i = 0; i < hashTable.length; i++) {
             int newValue = hashTable[i] - slideWindowSize;
             // if new value is negative, set it to zero branchless
@@ -49,14 +46,12 @@ class BlockCompressionState
         }
     }
 
-    public void reset()
-    {
+    public void reset() {
         Arrays.fill(hashTable, 0);
         Arrays.fill(chainTable, 0);
     }
 
-    public void enforceMaxDistance(long inputLimit, int maxDistance)
-    {
+    public void enforceMaxDistance(long inputLimit, int maxDistance) {
         int distance = (int) (inputLimit - baseAddress);
 
         int newOffset = distance - maxDistance;
@@ -65,13 +60,11 @@ class BlockCompressionState
         }
     }
 
-    public long getBaseAddress()
-    {
+    public long getBaseAddress() {
         return baseAddress;
     }
 
-    public int getWindowBaseOffset()
-    {
+    public int getWindowBaseOffset() {
         return windowBaseOffset;
     }
 }

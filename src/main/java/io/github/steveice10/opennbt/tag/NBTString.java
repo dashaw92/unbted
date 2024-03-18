@@ -31,92 +31,92 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class NBTString extends NBTTag implements Comparable<NBTString> {
-	private String value;
+    private String value;
 
-	public NBTString(String name) {
-		this(name, "");
-	}
+    public NBTString(String name) {
+        this(name, "");
+    }
 
-	public NBTString(String name, String value) {
-		super(name);
-		this.value = value;
-	}
+    public NBTString(String name, String value) {
+        super(name);
+        this.value = value;
+    }
 
-	@Override
-	public String stringValue() {
-		return value;
-	}
+    @Override
+    public String stringValue() {
+        return value;
+    }
 
-	public void setValue(String value) {
-		this.value = value;
-	}
-	
-	@Override
-	public void read(DataInput in) throws IOException {
-		this.value = in.readUTF();
-	}
+    public void setValue(String value) {
+        this.value = value;
+    }
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		out.writeUTF(this.value);
-	}
+    @Override
+    public void read(DataInput in) throws IOException {
+        this.value = in.readUTF();
+    }
 
-	@Override
-	public void destringify(StringifiedNBTReader in) throws IOException {
-		String s = in.readNextSingleValueString();
-		if (s.charAt(0) == '"') {
-			value = s.substring(1, s.length() - 1).replaceAll("\\\\\"", "\"");
-		} else if (s.charAt(0) == '\'') {
-			value = s.substring(1, s.length() - 1).replaceAll("\\\\\'", "'");
-		} else {
-			value = s;
-		}
-	}
+    @Override
+    public void write(DataOutput out) throws IOException {
+        out.writeUTF(this.value);
+    }
 
-	@Override
-	public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
-		if (value.matches("(?!\\d+)[\\w\\d]*")) {
-			out.append(value);
-			return;
-		}
-		if (value.contains("\"")) {
-			if (value.contains("'")) {
-				StringBuilder sb = new StringBuilder("\"");
-				sb.append(value.replaceAll("\"", "\\\\\""));
-				sb.append("\"");
-				out.append(sb.toString());
-				return;
-			}
-			StringBuilder sb = new StringBuilder("'");
-			sb.append(value);
-			sb.append("'");
-			out.append(sb.toString());
-			return;
-		}
-		StringBuilder sb = new StringBuilder("\"");
-		sb.append(value);
-		sb.append("\"");
-		out.append(sb.toString());
-	}
+    @Override
+    public void destringify(StringifiedNBTReader in) throws IOException {
+        String s = in.readNextSingleValueString();
+        if (s.charAt(0) == '"') {
+            value = s.substring(1, s.length() - 1).replaceAll("\\\\\"", "\"");
+        } else if (s.charAt(0) == '\'') {
+            value = s.substring(1, s.length() - 1).replaceAll("\\\\\'", "'");
+        } else {
+            value = s;
+        }
+    }
 
-	@Override
-	public int compareTo(NBTString that) {
-		return this.value.compareTo(that.value);
-	}
-	
-	@Override
-	protected boolean equalsChecked(NBTTag that) {
-		return Objects.equals(this.value, ((NBTString) that).value);
-	}
+    @Override
+    public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
+        if (value.matches("(?!\\d+)[\\w\\d]*")) {
+            out.append(value);
+            return;
+        }
+        if (value.contains("\"")) {
+            if (value.contains("'")) {
+                StringBuilder sb = new StringBuilder("\"");
+                sb.append(value.replaceAll("\"", "\\\\\""));
+                sb.append("\"");
+                out.append(sb.toString());
+                return;
+            }
+            StringBuilder sb = new StringBuilder("'");
+            sb.append(value);
+            sb.append("'");
+            out.append(sb.toString());
+            return;
+        }
+        StringBuilder sb = new StringBuilder("\"");
+        sb.append(value);
+        sb.append("\"");
+        out.append(sb.toString());
+    }
 
-	@Override
-	public int hashCode() {
-		return this.value.hashCode();
-	}
+    @Override
+    public int compareTo(NBTString that) {
+        return this.value.compareTo(that.value);
+    }
 
-	@Override
-	public String toString() {
-		return "NBTString[value="+this.value+"]";
-	}
-	
+    @Override
+    protected boolean equalsChecked(NBTTag that) {
+        return Objects.equals(this.value, ((NBTString) that).value);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.value.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "NBTString[value=" + this.value + "]";
+    }
+
 }

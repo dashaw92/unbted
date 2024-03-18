@@ -22,22 +22,22 @@ import java.util.UUID;
 
 public class UUIDs {
 
-	public static UUID fromIntArray(int[] arr) {
-		return new UUID(
-				(long)arr[0] << 32 | arr[1] & 0xFFFFFFFFL,
-				(long)arr[2] << 32 | arr[3] & 0xFFFFFFFFL
-			);
-	}
-	
-	public static int[] toIntArray(UUID id) {
-		long msb = id.getMostSignificantBits();
-		long lsb = id.getLeastSignificantBits();
-		return new int[] {
-			(int)((msb >> 32)&0xFFFFFFFFL),
-			(int)(msb&0xFFFFFFFFL),
-			(int)((lsb >> 32)&0xFFFFFFFFL),
-			(int)(lsb&0xFFFFFFFFL)
-		};
-	}
-	
+    public static UUID fromIntArray(int[] arr) {
+        return new UUID(
+                (long) arr[0] << 32 | arr[1] & 0xFFFFFFFFL,
+                (long) arr[2] << 32 | arr[3] & 0xFFFFFFFFL
+        );
+    }
+
+    public static int[] toIntArray(UUID id) {
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
+        return new int[]{
+                (int) ((msb >> 32) & 0xFFFFFFFFL),
+                (int) (msb & 0xFFFFFFFFL),
+                (int) ((lsb >> 32) & 0xFFFFFFFFL),
+                (int) (lsb & 0xFFFFFFFFL)
+        };
+    }
+
 }

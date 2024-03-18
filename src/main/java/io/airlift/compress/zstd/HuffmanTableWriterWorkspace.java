@@ -14,12 +14,9 @@
 
 package io.airlift.compress.zstd;
 
-import static io.airlift.compress.zstd.Huffman.MAX_FSE_TABLE_LOG;
-import static io.airlift.compress.zstd.Huffman.MAX_SYMBOL;
-import static io.airlift.compress.zstd.Huffman.MAX_TABLE_LOG;
+import static io.airlift.compress.zstd.Huffman.*;
 
-class HuffmanTableWriterWorkspace
-{
+class HuffmanTableWriterWorkspace {
     // for encoding weights
     public final byte[] weights = new byte[MAX_SYMBOL]; // the weight for the last symbol is implicit
 

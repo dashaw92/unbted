@@ -27,29 +27,29 @@ import io.github.steveice10.opennbt.tag.number.NBTByte;
 
 public class NBTFakeByte extends NBTByte implements NBTArrayFake {
 
-	private final NBTByteArray parent;
-	private final int index;
-	
-	public NBTFakeByte(NBTByteArray parent, int index) {
-		super("");
-		this.parent = parent;
-		this.index = index;
-		setParent(parent);
-	}
-	
-	@Override
-	public int getIndex() {
-		return index;
-	}
-	
-	@Override
-	protected byte getValue() {
-		return parent.getValue(index);
-	}
-	
-	@Override
-	public void setValue(byte value) {
-		parent.setValue(index, value);
-	}
-	
+    private final NBTByteArray parent;
+    private final int index;
+
+    public NBTFakeByte(NBTByteArray parent, int index) {
+        super("");
+        this.parent = parent;
+        this.index = index;
+        setParent(parent);
+    }
+
+    @Override
+    public int getIndex() {
+        return index;
+    }
+
+    @Override
+    protected byte getValue() {
+        return parent.getValue(index);
+    }
+
+    @Override
+    public void setValue(byte value) {
+        parent.setValue(index, value);
+    }
+
 }

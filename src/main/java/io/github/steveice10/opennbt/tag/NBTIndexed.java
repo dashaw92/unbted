@@ -24,11 +24,14 @@ package io.github.steveice10.opennbt.tag;
 
 public interface NBTIndexed extends NBTParent {
 
-	<T extends NBTTag> T get(int index);
-	boolean add(NBTTag tag);
-	boolean add(int idx, NBTTag tag);
-	NBTTag set(int idx, NBTTag tag);
-	
-	Class<? extends NBTTag> getElementType();
-	
+    <T extends NBTTag> T get(int index);
+
+    boolean add(NBTTag tag);
+
+    boolean add(int idx, NBTTag tag);
+
+    NBTTag set(int idx, NBTTag tag);
+
+    Class<? extends NBTTag> getElementType();
+
 }

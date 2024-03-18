@@ -33,171 +33,171 @@ import java.io.IOException;
 import java.util.*;
 
 public class NBTCompound extends NBTTag implements NBTParent {
-	private final Map<String, NBTTag> map = new LinkedHashMap<>();
+    private final Map<String, NBTTag> map = new LinkedHashMap<>();
 
-	public NBTCompound(String name) {
-		super(name);
-	}
+    public NBTCompound(String name) {
+        super(name);
+    }
 
-	public NBTCompound(String name, Map<String, NBTTag> value) {
-		super(name);
-		for (NBTTag tag : value.values()) {
-			put(tag);
-		}
-	}
+    public NBTCompound(String name, Map<String, NBTTag> value) {
+        super(name);
+        for (NBTTag tag : value.values()) {
+            put(tag);
+        }
+    }
 
-	@Override
-	public boolean isEmpty() {
-		return this.map.isEmpty();
-	}
+    @Override
+    public boolean isEmpty() {
+        return this.map.isEmpty();
+    }
 
-	public boolean contains(String tagName) {
-		return this.map.containsKey(tagName);
-	}
+    public boolean contains(String tagName) {
+        return this.map.containsKey(tagName);
+    }
 
-	public <T extends NBTTag> T get(String tagName) {
-		return (T) this.map.get(tagName);
-	}
+    public <T extends NBTTag> T get(String tagName) {
+        return (T) this.map.get(tagName);
+    }
 
-	public <T extends NBTTag> T put(T tag) {
-		T t = (T) this.map.put(tag.getName(), tag);
-		tag.setParent(this);
-		if (t != null) {
-			t.setParent(null);
-		}
-		return t;
-	}
+    public <T extends NBTTag> T put(T tag) {
+        T t = (T) this.map.put(tag.getName(), tag);
+        tag.setParent(this);
+        if (t != null) {
+            t.setParent(null);
+        }
+        return t;
+    }
 
-	public <T extends NBTTag> T remove(String tagName) {
-		T t = (T) this.map.remove(tagName);
-		if (t != null) {
-			t.setParent(null);
-		}
-		return t;
-	}
+    public <T extends NBTTag> T remove(String tagName) {
+        T t = (T) this.map.remove(tagName);
+        if (t != null) {
+            t.setParent(null);
+        }
+        return t;
+    }
 
-	@Override
-	public boolean remove(NBTTag tag) {
-		if (this.map.remove(tag.getName(), tag)) {
-			tag.setParent(null);
-			return true;
-		}
-		return false;
-	}
+    @Override
+    public boolean remove(NBTTag tag) {
+        if (this.map.remove(tag.getName(), tag)) {
+            tag.setParent(null);
+            return true;
+        }
+        return false;
+    }
 
-	public Set<String> keySet() {
-		return Collections.unmodifiableSet(this.map.keySet());
-	}
+    public Set<String> keySet() {
+        return Collections.unmodifiableSet(this.map.keySet());
+    }
 
-	public Collection<NBTTag> values() {
-		return Collections.unmodifiableCollection(this.map.values());
-	}
+    public Collection<NBTTag> values() {
+        return Collections.unmodifiableCollection(this.map.values());
+    }
 
-	@Override
-	public int size() {
-		return this.map.size();
-	}
+    @Override
+    public int size() {
+        return this.map.size();
+    }
 
-	@Override
-	public void clear() {
-		for (NBTTag tag : map.values()) {
-			tag.setParent(null);
-		}
-		this.map.clear();
-	}
+    @Override
+    public void clear() {
+        for (NBTTag tag : map.values()) {
+            tag.setParent(null);
+        }
+        this.map.clear();
+    }
 
-	@Override
-	public Iterator<NBTTag> iterator() {
-		return this.values().iterator();
-	}
+    @Override
+    public Iterator<NBTTag> iterator() {
+        return this.values().iterator();
+    }
 
-	@Override
-	public String stringValue() {
+    @Override
+    public String stringValue() {
         List<String> inner = values().stream().map(t -> t.getName() + ": " + t.stringValue()).toList();
         return "{" + String.join(", ", inner) + "}";
-	}
+    }
 
-	@Override
-	public void read(DataInput in) throws IOException {
-		clear();
-		try {
-			while (true) {
-				NBTTag tag = NBTIO.readTag(in);
-				if (tag == null) break;
-				put(tag);
-			}
-		} catch (EOFException e) {
-			throw new IOException("Compound end marker not found", e);
-		}
-	}
+    @Override
+    public void read(DataInput in) throws IOException {
+        clear();
+        try {
+            while (true) {
+                NBTTag tag = NBTIO.readTag(in);
+                if (tag == null) break;
+                put(tag);
+            }
+        } catch (EOFException e) {
+            throw new IOException("Compound end marker not found", e);
+        }
+    }
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		for (NBTTag tag : this.map.values()) {
-			NBTIO.writeTag(out, tag);
-		}
-		out.writeByte(0);
-	}
+    @Override
+    public void write(DataOutput out) throws IOException {
+        for (NBTTag tag : this.map.values()) {
+            NBTIO.writeTag(out, tag);
+        }
+        out.writeByte(0);
+    }
 
-	@Override
-	public void destringify(StringifiedNBTReader in) throws IOException {
-		in.readSkipWhitespace();
-		while (true) {
-			String tagName = "";
-			if ((tagName += in.readSkipWhitespace()).equals("\"")) {
-				tagName = in.readUntil(false, '"');
-				in.read();
-			}
-			tagName += in.readUntil(false, ':');
-			in.read();
+    @Override
+    public void destringify(StringifiedNBTReader in) throws IOException {
+        in.readSkipWhitespace();
+        while (true) {
+            String tagName = "";
+            if ((tagName += in.readSkipWhitespace()).equals("\"")) {
+                tagName = in.readUntil(false, '"');
+                in.read();
+            }
+            tagName += in.readUntil(false, ':');
+            in.read();
 
-			put(in.readNextTag(tagName));
+            put(in.readNextTag(tagName));
 
-			char endChar = in.readSkipWhitespace();
-			if (endChar == ',')
-				continue;
-			if (endChar == '}')
-				break;
-		}
-	}
+            char endChar = in.readSkipWhitespace();
+            if (endChar == ',')
+                continue;
+            if (endChar == '}')
+                break;
+        }
+    }
 
-	@Override
-	public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
-		out.append('{');
+    @Override
+    public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
+        out.append('{');
 
-		boolean first = true;
-		for (NBTTag t : map.values()) {
-			if (first) {
-				first = false;
-			} else {
-				out.append(',');
-				if (!linebreak) {
-					out.append(' ');
-				}
-			}
-			out.writeTag(t, linebreak, depth + 1);
-		}
+        boolean first = true;
+        for (NBTTag t : map.values()) {
+            if (first) {
+                first = false;
+            } else {
+                out.append(',');
+                if (!linebreak) {
+                    out.append(' ');
+                }
+            }
+            out.writeTag(t, linebreak, depth + 1);
+        }
 
-		if (linebreak) {
-			out.append('\n');
-			out.indent(depth);
-		}
-		out.append('}');
-	}
+        if (linebreak) {
+            out.append('\n');
+            out.indent(depth);
+        }
+        out.append('}');
+    }
 
-	@Override
-	protected boolean equalsChecked(NBTTag that) {
-		return Objects.equals(this.map, ((NBTCompound)that).map);
-	}
+    @Override
+    protected boolean equalsChecked(NBTTag that) {
+        return Objects.equals(this.map, ((NBTCompound) that).map);
+    }
 
-	@Override
-	public int hashCode() {
-		return this.map.hashCode();
-	}
+    @Override
+    public int hashCode() {
+        return this.map.hashCode();
+    }
 
-	@Override
-	public String toString() {
-		return "NBTCompound"+map+"";
-	}
+    @Override
+    public String toString() {
+        return "NBTCompound" + map + "";
+    }
 
 }

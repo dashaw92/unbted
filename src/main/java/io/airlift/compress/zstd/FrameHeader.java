@@ -21,16 +21,14 @@ import static io.airlift.compress.zstd.Util.checkState;
 import static java.lang.Math.min;
 import static java.lang.Math.toIntExact;
 
-class FrameHeader
-{
+class FrameHeader {
     final long headerSize;
     final int windowSize;
     final long contentSize;
     final long dictionaryId;
     final boolean hasChecksum;
 
-    public FrameHeader(long headerSize, int windowSize, long contentSize, long dictionaryId, boolean hasChecksum)
-    {
+    public FrameHeader(long headerSize, int windowSize, long contentSize, long dictionaryId, boolean hasChecksum) {
         checkState(windowSize >= 0 || contentSize >= 0, "Invalid frame header: contentSize or windowSize must be set");
         this.headerSize = headerSize;
         this.windowSize = windowSize;
@@ -39,8 +37,7 @@ class FrameHeader
         this.hasChecksum = hasChecksum;
     }
 
-    public int computeRequiredOutputBufferLookBackSize()
-    {
+    public int computeRequiredOutputBufferLookBackSize() {
         if (contentSize < 0) {
             return windowSize;
         }
@@ -51,8 +48,7 @@ class FrameHeader
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -68,14 +64,12 @@ class FrameHeader
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hash(headerSize, windowSize, contentSize, dictionaryId, hasChecksum);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return new StringJoiner(", ", FrameHeader.class.getSimpleName() + "[", "]")
                 .add("headerSize=" + headerSize)
                 .add("windowSize=" + windowSize)

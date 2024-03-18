@@ -22,86 +22,113 @@
 
 package io.github.steveice10.opennbt.tag.number;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
 import io.github.steveice10.opennbt.tag.NBTTag;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
 public final class NBTShort extends NBTNumber implements Comparable<NBTShort> {
-	private short value;
+    private short value;
 
-	public NBTShort(String name) {
-		this(name, (short) 0);
-	}
+    public NBTShort(String name) {
+        this(name, (short) 0);
+    }
 
-	public NBTShort(String name, short value) {
-		super(name);
-		this.value = value;
-	}
+    public NBTShort(String name, short value) {
+        super(name);
+        this.value = value;
+    }
 
-	@Override
-	public Short numberValue() {
-		return this.value;
-	}
-	
-	@Override public byte byteValue() { return (byte)this.value; }
-	@Override public short shortValue() { return this.value; }
-	@Override public int intValue() { return this.value; }
-	@Override public long longValue() { return this.value; }
-	@Override public float floatValue() { return this.value; }
-	@Override public double doubleValue() { return this.value; }
-	@Override public String stringValue() { return Short.toString(this.value); }
+    @Override
+    public Short numberValue() {
+        return this.value;
+    }
 
-	public void setValue(short value) {
-		this.value = value;
-	}
+    @Override
+    public byte byteValue() {
+        return (byte) this.value;
+    }
 
-	@Override
-	public void read(DataInput in) throws IOException {
-		this.value = in.readShort();
-	}
+    @Override
+    public short shortValue() {
+        return this.value;
+    }
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		out.writeShort(this.value);
-	}
+    @Override
+    public int intValue() {
+        return this.value;
+    }
 
-	@Override
-	public void destringify(StringifiedNBTReader in) throws IOException {
-		String s = in.readNextSingleValueString();
-		s = s.toLowerCase().substring(0, s.length() - 1);
-		value = Short.parseShort(s);
-	}
+    @Override
+    public long longValue() {
+        return this.value;
+    }
 
-	@Override
-	public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
-		StringBuilder sb = new StringBuilder();
-		sb.append(value);
-		sb.append('s');
-		out.append(sb.toString());
-	}
-	
-	@Override
-	public int compareTo(NBTShort that) {
-		return Short.compare(this.value, that.value);
-	}
-	
-	@Override
-	protected boolean equalsChecked(NBTTag that) {
-		return this.value == ((NBTShort)that).value;
-	}
+    @Override
+    public float floatValue() {
+        return this.value;
+    }
 
-	@Override
-	public int hashCode() {
-		return Short.hashCode(value);
-	}
+    @Override
+    public double doubleValue() {
+        return this.value;
+    }
 
-	@Override
-	public String toString() {
-		return "NBTShort[value="+value+"]";
-	}
-	
+    @Override
+    public String stringValue() {
+        return Short.toString(this.value);
+    }
+
+    public void setValue(short value) {
+        this.value = value;
+    }
+
+    @Override
+    public void read(DataInput in) throws IOException {
+        this.value = in.readShort();
+    }
+
+    @Override
+    public void write(DataOutput out) throws IOException {
+        out.writeShort(this.value);
+    }
+
+    @Override
+    public void destringify(StringifiedNBTReader in) throws IOException {
+        String s = in.readNextSingleValueString();
+        s = s.toLowerCase().substring(0, s.length() - 1);
+        value = Short.parseShort(s);
+    }
+
+    @Override
+    public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(value);
+        sb.append('s');
+        out.append(sb.toString());
+    }
+
+    @Override
+    public int compareTo(NBTShort that) {
+        return Short.compare(this.value, that.value);
+    }
+
+    @Override
+    protected boolean equalsChecked(NBTTag that) {
+        return this.value == ((NBTShort) that).value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Short.hashCode(value);
+    }
+
+    @Override
+    public String toString() {
+        return "NBTShort[value=" + value + "]";
+    }
+
 }

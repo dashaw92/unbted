@@ -14,12 +14,9 @@
 
 package io.airlift.compress.zstd;
 
-import static io.airlift.compress.zstd.Constants.MAX_LITERALS_LENGTH_SYMBOL;
-import static io.airlift.compress.zstd.Constants.MAX_MATCH_LENGTH_SYMBOL;
-import static io.airlift.compress.zstd.Constants.MAX_OFFSET_CODE_SYMBOL;
+import static io.airlift.compress.zstd.Constants.*;
 
-class SequenceEncodingContext
-{
+class SequenceEncodingContext {
     private static final int MAX_SEQUENCES = Math.max(MAX_LITERALS_LENGTH_SYMBOL, MAX_MATCH_LENGTH_SYMBOL);
 
     public final FseCompressionTable literalLengthTable = new FseCompressionTable(Constants.LITERAL_LENGTH_TABLE_LOG, MAX_LITERALS_LENGTH_SYMBOL);

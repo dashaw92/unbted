@@ -18,22 +18,27 @@
 
 package com.unascribed.miniansi;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 public final class AnsiGroup implements Ansi {
-	private final AnsiCode[] codes;
-	public AnsiGroup(AnsiCode... codes) {
-		this.codes = codes;
-	}
-	@Override
-	public String toString() {
-		return Ansi.Utils.toString(codes);
-	}
-	@Override
-	public List<Integer> getCodes() {
-		return Arrays.stream(codes)
-				.map(AnsiCode::getCodes)
-				.flatMap(Collection::stream)
-				.toList();
-	}
+    private final AnsiCode[] codes;
+
+    public AnsiGroup(AnsiCode... codes) {
+        this.codes = codes;
+    }
+
+    @Override
+    public String toString() {
+        return Ansi.Utils.toString(codes);
+    }
+
+    @Override
+    public List<Integer> getCodes() {
+        return Arrays.stream(codes)
+                .map(AnsiCode::getCodes)
+                .flatMap(Collection::stream)
+                .toList();
+    }
 }

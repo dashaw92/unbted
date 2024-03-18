@@ -27,29 +27,29 @@ import io.github.steveice10.opennbt.tag.number.NBTInt;
 
 public class NBTFakeInt extends NBTInt implements NBTArrayFake {
 
-	private final NBTIntArray parent;
-	private final int index;
-	
-	public NBTFakeInt(NBTIntArray parent, int index) {
-		super("");
-		this.parent = parent;
-		this.index = index;
-		setParent(parent);
-	}
-	
-	@Override
-	public int getIndex() {
-		return index;
-	}
-	
-	@Override
-	protected int getValue() {
-		return parent.getValue(index);
-	}
-	
-	@Override
-	public void setValue(int value) {
-		parent.setValue(index, value);
-	}
-	
+    private final NBTIntArray parent;
+    private final int index;
+
+    public NBTFakeInt(NBTIntArray parent, int index) {
+        super("");
+        this.parent = parent;
+        this.index = index;
+        setParent(parent);
+    }
+
+    @Override
+    public int getIndex() {
+        return index;
+    }
+
+    @Override
+    protected int getValue() {
+        return parent.getValue(index);
+    }
+
+    @Override
+    public void setValue(int value) {
+        parent.setValue(index, value);
+    }
+
 }

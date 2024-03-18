@@ -35,261 +35,262 @@ import java.util.List;
 import java.util.Objects;
 
 public class NBTList extends NBTTag implements NBTParent, NBTIndexed {
-	private Class<? extends NBTTag> type;
-	private final List<NBTTag> list = new ArrayList<>();
+    private final List<NBTTag> list = new ArrayList<>();
+    private Class<? extends NBTTag> type;
 
-	/**
-	 * Creates an empty list tag with the specified name and no defined type.
-	 */
-	public NBTList(String name) {
-		super(name);
-		this.type = null;
-	}
+    /**
+     * Creates an empty list tag with the specified name and no defined type.
+     */
+    public NBTList(String name) {
+        super(name);
+        this.type = null;
+    }
 
-	/**
-	 * Creates an empty list tag with the specified name and type.
-	 */
-	public NBTList(String name, Class<? extends NBTTag> type) {
-		this(name);
-		this.type = type;
-	}
+    /**
+     * Creates an empty list tag with the specified name and type.
+     */
+    public NBTList(String name, Class<? extends NBTTag> type) {
+        this(name);
+        this.type = type;
+    }
 
-	/**
-	 * Creates a list tag with the specified name and value.
-	 * The list tag's type will be set to that of the first tag being added, or null if the given list is empty.
-	 * @throws IllegalArgumentException If all tags in the list are not of the same type.
-	 */
-	public NBTList(String name, List<NBTTag> value) throws IllegalArgumentException {
-		this(name);
-		for (NBTTag tag : value) {
-			this.add(tag);
-		}
-	}
+    /**
+     * Creates a list tag with the specified name and value.
+     * The list tag's type will be set to that of the first tag being added, or null if the given list is empty.
+     *
+     * @throws IllegalArgumentException If all tags in the list are not of the same type.
+     */
+    public NBTList(String name, List<NBTTag> value) throws IllegalArgumentException {
+        this(name);
+        for (NBTTag tag : value) {
+            this.add(tag);
+        }
+    }
 
-	/**
-	 * @return The ListTag's element type, or null if the list does not yet have a defined type.
-	 */
-	@Override
-	public Class<? extends NBTTag> getElementType() {
-		return this.type;
-	}
+    /**
+     * @return The ListTag's element type, or null if the list does not yet have a defined type.
+     */
+    @Override
+    public Class<? extends NBTTag> getElementType() {
+        return this.type;
+    }
 
-	@Override
-	public boolean add(NBTTag tag) {
-		return add(size(), tag);
-	}
-	
-	/**
-	 * Adds a tag to this list tag.
-	 * If the list does not yet have a type, it will be set to the type of the tag being added.
-	 *
-	 * @param tag Tag to add. Should not be null.
-	 * @return If the list was changed as a result.
-	 * @throws IllegalArgumentException If the tag's type differs from the list tag's type.
-	 */
-	@Override
-	public boolean add(int idx, NBTTag tag) throws IllegalArgumentException {
-		if (tag == null) return false;
-		checkOrAdoptType(tag);
+    @Override
+    public boolean add(NBTTag tag) {
+        return add(size(), tag);
+    }
 
-		this.list.add(idx, tag);
-		tag.setParent(this);
-		return true;
-	}
-	
-	@Override
-	public NBTTag set(int idx, NBTTag tag) throws IllegalArgumentException {
-		if (tag == null) return null;
-		checkOrAdoptType(tag);
-		
-		NBTTag old = this.list.set(idx, tag);
-		tag.setParent(this);
-		if (old != null) {
-			old.setParent(null);
-		}
-		return old;
-	}
+    /**
+     * Adds a tag to this list tag.
+     * If the list does not yet have a type, it will be set to the type of the tag being added.
+     *
+     * @param tag Tag to add. Should not be null.
+     * @return If the list was changed as a result.
+     * @throws IllegalArgumentException If the tag's type differs from the list tag's type.
+     */
+    @Override
+    public boolean add(int idx, NBTTag tag) throws IllegalArgumentException {
+        if (tag == null) return false;
+        checkOrAdoptType(tag);
 
-	private void checkOrAdoptType(NBTTag tag) {
-		// If empty list, use this as tag type.
-		if (this.type == null) {
-			this.type = tag.getClass();
-		} else if (tag.getClass() != this.type) {
-			throw new IllegalArgumentException("Attempted to add an "+tag.getClass().getSimpleName()+" to a NBTList of type "+type.getSimpleName());
-		}
-	}
+        this.list.add(idx, tag);
+        tag.setParent(this);
+        return true;
+    }
 
-	/**
-	 * Removes a tag from this list tag.
-	 *
-	 * @param tag Tag to remove.
-	 * @return If the list contained the tag.
-	 */
-	@Override
-	public boolean remove(NBTTag tag) {
-		boolean b = this.list.remove(tag);
-		if (b) {
-			tag.setParent(null);
-			if (this.isEmpty()) {
-				this.type = null;
-			}
-		}
-		return b;
-	}
-	
-	public <T extends NBTTag> T remove(int index) {
-		T t = (T) this.list.remove(index);
-		if (t != null) {
-			t.setParent(null);
-			if (this.isEmpty()) {
-				this.type = null;
-			}
-		}
-		return t;
-	}
+    @Override
+    public NBTTag set(int idx, NBTTag tag) throws IllegalArgumentException {
+        if (tag == null) return null;
+        checkOrAdoptType(tag);
 
-	/**
-	 * Gets the tag at the given index of this list tag.
-	 *
-	 * @param <T>   Type of tag to get
-	 * @param index Index of the tag.
-	 * @return The tag at the given index.
-	 */
-	@Override
-	public <T extends NBTTag> T get(int index) {
-		return (T) this.list.get(index);
-	}
+        NBTTag old = this.list.set(idx, tag);
+        tag.setParent(this);
+        if (old != null) {
+            old.setParent(null);
+        }
+        return old;
+    }
 
-	/**
-	 * Gets the number of tags in this list tag.
-	 *
-	 * @return The size of this list tag.
-	 */
-	@Override
-	public int size() {
-		return this.list.size();
-	}
-	
-	@Override
-	public boolean isEmpty() {
-		return this.list.isEmpty();
-	}
-	
-	@Override
-	public void clear() {
-		for (NBTTag tag : list) {
-			tag.setParent(null);
-		}
-		this.list.clear();
-		this.type = null;
-	}
-	
-	public int indexOf(NBTTag tag) {
-		// reimplemented for identity comparison
-		// List::indexOf uses equals
-		for (int i = 0; i < size(); i++) {
-			if (get(i) == tag) return i;
-		}
-		return -1;
-	}
-	
-	@Override
-	public String stringValue() {
-		var inner = String.join(", ", list.stream().map(NBTTag::stringValue).toList());
-		return "[" + inner + "]";
-	}
+    private void checkOrAdoptType(NBTTag tag) {
+        // If empty list, use this as tag type.
+        if (this.type == null) {
+            this.type = tag.getClass();
+        } else if (tag.getClass() != this.type) {
+            throw new IllegalArgumentException("Attempted to add an " + tag.getClass().getSimpleName() + " to a NBTList of type " + type.getSimpleName());
+        }
+    }
 
-	@Override
-	public Iterator<NBTTag> iterator() {
-		return this.list.iterator();
-	}
+    /**
+     * Removes a tag from this list tag.
+     *
+     * @param tag Tag to remove.
+     * @return If the list contained the tag.
+     */
+    @Override
+    public boolean remove(NBTTag tag) {
+        boolean b = this.list.remove(tag);
+        if (b) {
+            tag.setParent(null);
+            if (this.isEmpty()) {
+                this.type = null;
+            }
+        }
+        return b;
+    }
 
-	@Override
-	public void read(DataInput in) throws IOException {
-		clear();
+    public <T extends NBTTag> T remove(int index) {
+        T t = (T) this.list.remove(index);
+        if (t != null) {
+            t.setParent(null);
+            if (this.isEmpty()) {
+                this.type = null;
+            }
+        }
+        return t;
+    }
 
-		int id = in.readUnsignedByte();
-		if(id != 0) {
-			this.type = NBTRegistry.classById(id);
-			if (this.type == null) throw new IOException("Unknown tag ID in NBTList "+id);
-		}
+    /**
+     * Gets the tag at the given index of this list tag.
+     *
+     * @param <T>   Type of tag to get
+     * @param index Index of the tag.
+     * @return The tag at the given index.
+     */
+    @Override
+    public <T extends NBTTag> T get(int index) {
+        return (T) this.list.get(index);
+    }
 
-		int count = in.readInt();
-		for (int i = 0; i < count; i++) {
-			NBTTag tag = NBTRegistry.createInstance(id, "");
-			tag.read(in);
-			this.add(tag);
-		}
-	}
+    /**
+     * Gets the number of tags in this list tag.
+     *
+     * @return The size of this list tag.
+     */
+    @Override
+    public int size() {
+        return this.list.size();
+    }
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		if (this.type == null) {
-			out.writeByte(0);
-		} else {
-			int id = NBTRegistry.idForClass(this.type);
-			if (id == -1) throw new IOException("NBTList contains unregistered tag class "+this.type.getSimpleName());
-			out.writeByte(id);
-		}
+    @Override
+    public boolean isEmpty() {
+        return this.list.isEmpty();
+    }
 
-		out.writeInt(this.list.size());
-		for (NBTTag tag : this.list) {
-			tag.write(out);
-		}
-	}
+    @Override
+    public void clear() {
+        for (NBTTag tag : list) {
+            tag.setParent(null);
+        }
+        this.list.clear();
+        this.type = null;
+    }
 
-	@Override
-	public void destringify(StringifiedNBTReader in) throws IOException {
-		in.readSkipWhitespace();
-		while (true) {
-			add(in.readNextTag(""));
+    public int indexOf(NBTTag tag) {
+        // reimplemented for identity comparison
+        // List::indexOf uses equals
+        for (int i = 0; i < size(); i++) {
+            if (get(i) == tag) return i;
+        }
+        return -1;
+    }
 
-			char endChar = in.readSkipWhitespace();
-			if (endChar == ',')
-				continue;
-			if (endChar == ']')
-				break;
-		}
-	}
+    @Override
+    public String stringValue() {
+        var inner = String.join(", ", list.stream().map(NBTTag::stringValue).toList());
+        return "[" + inner + "]";
+    }
 
-	@Override
-	public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
-		out.append('[');
+    @Override
+    public Iterator<NBTTag> iterator() {
+        return this.list.iterator();
+    }
 
-		boolean first = true;
-		for (NBTTag t : list) {
-			if (first) {
-				first = false;
-			} else {
-				out.append(',');
-				if (!linebreak) {
-					out.append(' ');
-				}
-			}
-			out.writeTag(t, linebreak, depth + 1);
-		}
+    @Override
+    public void read(DataInput in) throws IOException {
+        clear();
 
-		if (linebreak) {
-			out.append('\n');
-			out.indent(depth);
-		}
-		out.append(']');
-	}
+        int id = in.readUnsignedByte();
+        if (id != 0) {
+            this.type = NBTRegistry.classById(id);
+            if (this.type == null) throw new IOException("Unknown tag ID in NBTList " + id);
+        }
 
-	@Override
-	protected boolean equalsChecked(NBTTag that) {
-		return this.type == ((NBTList)that).type
-				&& Objects.equals(this.list, ((NBTList)that).list);
-	}
+        int count = in.readInt();
+        for (int i = 0; i < count; i++) {
+            NBTTag tag = NBTRegistry.createInstance(id, "");
+            tag.read(in);
+            this.add(tag);
+        }
+    }
 
-	@Override
-	public int hashCode() {
-		return this.list.hashCode();
-	}
+    @Override
+    public void write(DataOutput out) throws IOException {
+        if (this.type == null) {
+            out.writeByte(0);
+        } else {
+            int id = NBTRegistry.idForClass(this.type);
+            if (id == -1) throw new IOException("NBTList contains unregistered tag class " + this.type.getSimpleName());
+            out.writeByte(id);
+        }
 
-	@Override
-	public String toString() {
-		return "NBTList<"+(this.type == null ? "null" : this.type.getSimpleName())+">"+this.list;
-	}
-	
+        out.writeInt(this.list.size());
+        for (NBTTag tag : this.list) {
+            tag.write(out);
+        }
+    }
+
+    @Override
+    public void destringify(StringifiedNBTReader in) throws IOException {
+        in.readSkipWhitespace();
+        while (true) {
+            add(in.readNextTag(""));
+
+            char endChar = in.readSkipWhitespace();
+            if (endChar == ',')
+                continue;
+            if (endChar == ']')
+                break;
+        }
+    }
+
+    @Override
+    public void stringify(StringifiedNBTWriter out, boolean linebreak, int depth) throws IOException {
+        out.append('[');
+
+        boolean first = true;
+        for (NBTTag t : list) {
+            if (first) {
+                first = false;
+            } else {
+                out.append(',');
+                if (!linebreak) {
+                    out.append(' ');
+                }
+            }
+            out.writeTag(t, linebreak, depth + 1);
+        }
+
+        if (linebreak) {
+            out.append('\n');
+            out.indent(depth);
+        }
+        out.append(']');
+    }
+
+    @Override
+    protected boolean equalsChecked(NBTTag that) {
+        return this.type == ((NBTList) that).type
+                && Objects.equals(this.list, ((NBTList) that).list);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.list.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "NBTList<" + (this.type == null ? "null" : this.type.getSimpleName()) + ">" + this.list;
+    }
+
 }
