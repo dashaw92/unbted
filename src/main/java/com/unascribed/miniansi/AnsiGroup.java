@@ -18,7 +18,7 @@
 
 package com.unascribed.miniansi;
 
-import com.google.common.collect.ImmutableList;
+import java.util.*;
 
 public final class AnsiGroup implements Ansi {
 	private final AnsiCode[] codes;
@@ -30,11 +30,10 @@ public final class AnsiGroup implements Ansi {
 		return Ansi.Utils.toString(codes);
 	}
 	@Override
-	public ImmutableList<Integer> getCodes() {
-		ImmutableList.Builder<Integer> builder = ImmutableList.builder();
-		for (AnsiCode code : codes) {
-			builder.addAll(code.getCodes());
-		}
-		return builder.build();
+	public List<Integer> getCodes() {
+		return Arrays.stream(codes)
+				.map(AnsiCode::getCodes)
+				.flatMap(Collection::stream)
+				.toList();
 	}
 }

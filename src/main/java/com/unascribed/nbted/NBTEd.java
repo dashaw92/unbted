@@ -18,54 +18,10 @@
 
 package com.unascribed.nbted;
 
-import java.io.ByteArrayInputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOError;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PushbackInputStream;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.logging.Handler;
-import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
-
-import org.jline.builtins.Less;
-import org.jline.builtins.Source.URLSource;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Resources;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.google.gson.*;
 import com.google.gson.stream.JsonWriter;
 import com.unascribed.miniansi.AnsiStream;
 import com.unascribed.nbted.TagPrinter.RecurseMode;
-
 import io.github.steveice10.opennbt.NBTIO;
 import io.github.steveice10.opennbt.NBTRegistry;
 import io.github.steveice10.opennbt.tag.NBTCompound;
@@ -75,27 +31,32 @@ import io.github.steveice10.opennbt.tag.NBTTag;
 import io.github.steveice10.opennbt.tag.array.NBTByteArray;
 import io.github.steveice10.opennbt.tag.array.NBTIntArray;
 import io.github.steveice10.opennbt.tag.array.NBTLongArray;
-import io.github.steveice10.opennbt.tag.number.NBTByte;
-import io.github.steveice10.opennbt.tag.number.NBTDouble;
-import io.github.steveice10.opennbt.tag.number.NBTFloat;
-import io.github.steveice10.opennbt.tag.number.NBTInt;
-import io.github.steveice10.opennbt.tag.number.NBTLong;
-import io.github.steveice10.opennbt.tag.number.NBTNumber;
-import io.github.steveice10.opennbt.tag.number.NBTShort;
-import joptsimple.NonOptionArgumentSpec;
-import joptsimple.OptionException;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
+import io.github.steveice10.opennbt.tag.number.*;
+import joptsimple.*;
+import org.jline.builtins.Less;
+import org.jline.builtins.Source.URLSource;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+
+import java.io.*;
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
 public class NBTEd {
 	public static final String VERSION;
 	static {
 		String ver = null;
-		try {
-			ver = Resources.toString(ClassLoader.getSystemResource("version.txt"), Charsets.UTF_8);
-		} catch (Exception e) {
-		}
+		try(var br = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream("version.txt")))) {
+			ver = br.readLine();
+        } catch (IOException ignored) {}
+
 		VERSION = ver == null ? "?.?" : ver;
 	}
 	
@@ -244,7 +205,7 @@ public class NBTEd {
 		} else {
 			String in = nonoptions.get(0);
 			if ("-".equals(in)) {
-				byte[] bys = ByteStreams.toByteArray(System.in);
+				byte[] bys = System.in.readAllBytes();
 				inSupplier = () -> new ByteArrayInputStream(bys);
 				sourceFile = FileInfo.STDIN;
 				log("Reading from stdin");
@@ -476,7 +437,7 @@ public class NBTEd {
 	}
 
 	private static NBTTag loadJson(InputStream is) {
-		JsonObject json = gson.fromJson(new InputStreamReader(is, Charsets.UTF_8), JsonObject.class);
+		JsonObject json = gson.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonObject.class);
 		JsonElement unbtedMarker = json.get("_unbted");
 		if (unbtedMarker != null) {
 			int version = unbtedMarker.getAsInt();
@@ -559,7 +520,7 @@ public class NBTEd {
 		} else if ("string".equals(type)) {
 			return new NBTString(name, ele.getAsString());
 		} else if ("byte-array".equals(type)) {
-			return new NBTByteArray(name, BaseEncoding.base64().decode(ele.getAsString()));
+			return new NBTByteArray(name, Base64.getDecoder().decode(ele.getAsString()));
 		} else if ("int-array".equals(type)) {
 			JsonArray arr = ele.getAsJsonArray();
 			int[] out = new int[arr.size()];
@@ -589,7 +550,7 @@ public class NBTEd {
 				out.add((roundTrip ? getTypePrefix(t)+":" : "")+t.getName(), toJson(t, roundTrip));
 			}
 			if (!roundTrip) {
-				List<String> keys = Lists.newArrayList(out.keySet());
+				List<String> keys = out.keySet().stream().collect(Collectors.toCollection(ArrayList::new));
 				Collections.sort(keys);
 				JsonObject sorted = new JsonObject();
 				for (String k : keys) {
@@ -625,7 +586,7 @@ public class NBTEd {
 		} else if (tag instanceof NBTString) {
 			return new JsonPrimitive(((NBTString)tag).stringValue());
 		} else if (tag instanceof NBTByteArray) {
-			return new JsonPrimitive(BaseEncoding.base64().encode(((NBTByteArray)tag).getValue()));
+			return new JsonPrimitive(Base64.getEncoder().encodeToString(((NBTByteArray)tag).getValue()));
 		} else if (tag instanceof NBTIntArray) {
 			NBTIntArray arr = ((NBTIntArray)tag);
 			if (!roundTrip && arr.size() == 4) {
@@ -655,9 +616,11 @@ public class NBTEd {
 	public static void displayEmbeddedFileInPager(String file) throws Exception {
 		if (PAGER && !"dumb".equals(terminal.getType())) {
 			Less less = new Less(NBTEd.terminal, new File("").toPath());
-			less.run(Lists.newArrayList(new URLSource(ClassLoader.getSystemResource(file), file)));
+			less.run(Collections.singletonList(new URLSource(ClassLoader.getSystemResource(file), file)));
 		} else {
-			Resources.copy(ClassLoader.getSystemResource(file), System.err);
+			try(var br = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream(file)))) {
+				System.err.println(br.lines().collect(Collectors.joining("\n")));
+			} catch (IOException ignored) {}
 		}
 	}
 	

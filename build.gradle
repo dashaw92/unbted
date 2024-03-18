@@ -21,8 +21,6 @@ repositories {
 }
 
 dependencies {
-	implementation('com.google.guava:guava:32.0.1-jre') //TODO: Any version newer than 32.0.1 causes a compilation error
-	implementation 'com.google.guava:failureaccess:1.0.2'
 	implementation 'com.google.code.gson:gson:2.10.1'
 	implementation 'net.sf.jopt-simple:jopt-simple:6.0-alpha-3'
 	implementation 'org.jline:jline-terminal:3.25.1'
@@ -48,15 +46,18 @@ task proguard(type: proguard.gradle.ProGuardTask) {
 	keep 'class com.unascribed.nbted.** { *; }'
 	keepclassmembers 'class ** { *; }'
 
-//	dontwarn 'io.airlift.compress.**' //sun.misc.Unsafe warning
-//	dontwarn 'org.checkerframework.**'
-//	dontwarn 'com.google.errorprone.**'
-//	dontwarn 'com.google.j2objc.**'
-//	dontwarn 'javax.annotation.**'
-//	dontwarn 'org.codehaus.mojo.animal_sniffer.**'
-//	dontwarn 'org.mozilla.universalchardet.**'
-//	dontwarn 'java.sql.**' // gson adapters we don't use
-	
+	dontwarn 'io.airlift.compress.**' //sun.misc.Unsafe warning
+	dontwarn 'org.checkerframework.**'
+	dontwarn 'com.google.errorprone.**'
+	dontwarn 'com.google.j2objc.**'
+	dontwarn 'javax.annotation.**'
+	dontwarn 'org.codehaus.mojo.animal_sniffer.**'
+	dontwarn 'org.mozilla.universalchardet.**'
+	dontwarn 'java.sql.**' // gson adapters we don't use
+
+	//Guava
+	ignorewarnings
+
 	verbose
 }
 

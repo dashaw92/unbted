@@ -18,22 +18,17 @@
 
 package com.unascribed.nbted;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
+import joptsimple.OptionException;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.ParsedLine;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-
-import joptsimple.OptionException;
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
+import java.util.List;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class Command {
 	public interface AliasUnawareAction {
@@ -52,14 +47,14 @@ public class Command {
 	private String description = "";
 	private String name = "";
 	private String usage = "";
-	private ImmutableList<String> aliases = ImmutableList.of();
-	private ImmutableSet<String> allNames = ImmutableSet.of();
+	private List<String> aliases = List.of();
+	private List<String> allNames = List.of();
 	
 	private Command() {}
 	
 	public void execute(String alias, Iterable<String> args) throws Exception {
 		if (action == null) return;
-		execute(alias, Iterables.toArray(args, String.class));
+		execute(alias, StreamSupport.stream(args.spliterator(), false).toArray(String[]::new));
 	}
 	
 	public void execute(String alias, String... args) throws Exception {
@@ -105,11 +100,11 @@ public class Command {
 		return usage.replace("{}", alias);
 	}
 	
-	public ImmutableList<String> getAliases() {
+	public List<String> getAliases() {
 		return aliases;
 	}
 	
-	public ImmutableSet<String> getAllNames() {
+	public List<String> getAllNames() {
 		return allNames;
 	}
 	
@@ -141,13 +136,13 @@ public class Command {
 	
 	public Command name(String name) {
 		this.name = name;
-		this.allNames = ImmutableSet.copyOf(Iterables.concat(Collections.singleton(name), aliases));
+		this.allNames = Stream.concat(Stream.of(name), this.aliases.stream()).toList();
 		return this;
 	}
 	
 	public Command aliases(String... aliases) {
-		this.aliases = ImmutableList.copyOf(aliases);
-		this.allNames = ImmutableSet.copyOf(Iterables.concat(Collections.singleton(name), Arrays.asList(aliases)));
+		this.aliases = List.of(aliases);
+		this.allNames = Stream.concat(Stream.of(name), this.aliases.stream()).toList();
 		return this;
 	}
 	

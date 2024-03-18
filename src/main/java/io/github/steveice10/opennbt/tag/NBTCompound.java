@@ -22,28 +22,18 @@
 
 package io.github.steveice10.opennbt.tag;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.EOFException;
-import java.io.IOException;
-import java.util.AbstractMap;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
 import io.github.steveice10.opennbt.NBTIO;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
 
-import java.util.Set;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.EOFException;
+import java.io.IOException;
+import java.util.*;
 
 public class NBTCompound extends NBTTag implements NBTParent {
-	private final Map<String, NBTTag> map = Maps.newLinkedHashMap();
+	private final Map<String, NBTTag> map = new LinkedHashMap<>();
 
 	public NBTCompound(String name) {
 		super(name);
@@ -85,7 +75,7 @@ public class NBTCompound extends NBTTag implements NBTParent {
 		}
 		return t;
 	}
-	
+
 	@Override
 	public boolean remove(NBTTag tag) {
 		if (this.map.remove(tag.getName(), tag)) {
@@ -118,12 +108,13 @@ public class NBTCompound extends NBTTag implements NBTParent {
 
 	@Override
 	public Iterator<NBTTag> iterator() {
-		return Iterators.unmodifiableIterator(this.values().iterator());
+		return this.values().iterator();
 	}
-	
+
 	@Override
 	public String stringValue() {
-		return "{"+Joiner.on(", ").withKeyValueSeparator(": ").join(values().stream().map(t -> new AbstractMap.SimpleImmutableEntry<>(t.getName(), t.stringValue())).iterator())+"}";
+        List<String> inner = values().stream().map(t -> t.getName() + ": " + t.stringValue()).toList();
+        return "{" + String.join(", ", inner) + "}";
 	}
 
 	@Override
@@ -147,7 +138,7 @@ public class NBTCompound extends NBTTag implements NBTParent {
 		}
 		out.writeByte(0);
 	}
-    
+
 	@Override
 	public void destringify(StringifiedNBTReader in) throws IOException {
 		in.readSkipWhitespace();
@@ -193,10 +184,10 @@ public class NBTCompound extends NBTTag implements NBTParent {
 		}
 		out.append('}');
 	}
-	
+
 	@Override
 	protected boolean equalsChecked(NBTTag that) {
-		return Objects.equal(this.map, ((NBTCompound)that).map);
+		return Objects.equals(this.map, ((NBTCompound)that).map);
 	}
 
 	@Override
@@ -208,5 +199,5 @@ public class NBTCompound extends NBTTag implements NBTParent {
 	public String toString() {
 		return "NBTCompound"+map+"";
 	}
-	
+
 }

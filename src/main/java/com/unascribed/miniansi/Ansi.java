@@ -20,11 +20,10 @@ package com.unascribed.miniansi;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 public interface Ansi {
-	ImmutableList<Integer> getCodes();
+	List<Integer> getCodes();
 
 	public static final class Utils {
 		public static String toString(Ansi... codes) {

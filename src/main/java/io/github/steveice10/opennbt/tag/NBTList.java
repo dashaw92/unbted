@@ -22,24 +22,21 @@
 
 package io.github.steveice10.opennbt.tag;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-
 import io.github.steveice10.opennbt.NBTRegistry;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+
 public class NBTList extends NBTTag implements NBTParent, NBTIndexed {
 	private Class<? extends NBTTag> type;
-	private final List<NBTTag> list = Lists.newArrayList();
+	private final List<NBTTag> list = new ArrayList<>();
 
 	/**
 	 * Creates an empty list tag with the specified name and no defined type.
@@ -198,12 +195,13 @@ public class NBTList extends NBTTag implements NBTParent, NBTIndexed {
 	
 	@Override
 	public String stringValue() {
-		return "["+Joiner.on(", ").join(list.stream().map(NBTTag::stringValue).iterator())+"]";
+		var inner = String.join(", ", list.stream().map(NBTTag::stringValue).toList());
+		return "[" + inner + "]";
 	}
 
 	@Override
 	public Iterator<NBTTag> iterator() {
-		return Iterators.unmodifiableIterator(this.list.iterator());
+		return this.list.iterator();
 	}
 
 	@Override
@@ -281,7 +279,7 @@ public class NBTList extends NBTTag implements NBTParent, NBTIndexed {
 	@Override
 	protected boolean equalsChecked(NBTTag that) {
 		return this.type == ((NBTList)that).type
-				&& Objects.equal(this.list, ((NBTList)that).list);
+				&& Objects.equals(this.list, ((NBTList)that).list);
 	}
 
 	@Override

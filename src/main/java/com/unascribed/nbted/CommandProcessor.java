@@ -18,78 +18,40 @@
 
 package com.unascribed.nbted;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.google.gson.JsonObject;
+import com.unascribed.miniansi.AnsiCode;
+import com.unascribed.nbted.TagPrinter.RecurseMode;
+import io.github.steveice10.opennbt.NBTIO;
+import io.github.steveice10.opennbt.NBTRegistry;
+import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
+import io.github.steveice10.opennbt.tag.*;
+import io.github.steveice10.opennbt.tag.array.NBTByteArray;
+import io.github.steveice10.opennbt.tag.array.NBTIntArray;
+import io.github.steveice10.opennbt.tag.array.NBTLongArray;
+import io.github.steveice10.opennbt.tag.array.support.NBTArrayFake;
+import io.github.steveice10.opennbt.tag.number.*;
+import joptsimple.OptionDescriptor;
+import joptsimple.OptionParser;
+import joptsimple.OptionSpec;
+import joptsimple.OptionSpecBuilder;
 import org.jline.builtins.Completers;
-import org.jline.reader.Candidate;
-import org.jline.reader.Completer;
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.Highlighter;
-import org.jline.reader.LineReader;
+import org.jline.reader.*;
 import org.jline.reader.LineReader.Option;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.ParsedLine;
-import org.jline.reader.UserInterruptException;
 import org.jline.reader.Parser.ParseContext;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.CountingOutputStream;
-import com.google.common.primitives.Ints;
-
-import com.google.gson.JsonObject;
-import com.unascribed.miniansi.AnsiCode;
-import com.unascribed.nbted.TagPrinter.RecurseMode;
-
-import io.github.steveice10.opennbt.NBTIO;
-import io.github.steveice10.opennbt.NBTRegistry;
-import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
-import io.github.steveice10.opennbt.tag.NBTCompound;
-import io.github.steveice10.opennbt.tag.NBTIndexed;
-import io.github.steveice10.opennbt.tag.NBTList;
-import io.github.steveice10.opennbt.tag.NBTParent;
-import io.github.steveice10.opennbt.tag.NBTString;
-import io.github.steveice10.opennbt.tag.NBTTag;
-import io.github.steveice10.opennbt.tag.array.NBTByteArray;
-import io.github.steveice10.opennbt.tag.array.NBTIntArray;
-import io.github.steveice10.opennbt.tag.array.NBTLongArray;
-import io.github.steveice10.opennbt.tag.array.support.NBTArrayFake;
-import io.github.steveice10.opennbt.tag.number.NBTByte;
-import io.github.steveice10.opennbt.tag.number.NBTDouble;
-import io.github.steveice10.opennbt.tag.number.NBTFloat;
-import io.github.steveice10.opennbt.tag.number.NBTInt;
-import io.github.steveice10.opennbt.tag.number.NBTLong;
-import io.github.steveice10.opennbt.tag.number.NBTNumber;
-import io.github.steveice10.opennbt.tag.number.NBTShort;
-import joptsimple.OptionDescriptor;
-import joptsimple.OptionParser;
-import joptsimple.OptionSpec;
-import joptsimple.OptionSpecBuilder;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.*;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.StreamSupport;
 
 import static com.unascribed.nbted.CommandException.*;
 import static com.unascribed.nbted.ResolvePathOption.*;
@@ -99,8 +61,8 @@ public class CommandProcessor implements Completer, Highlighter {
 	private static final NumberFormat ONE_FRAC_FMT = new DecimalFormat("#,##0.0");
 	private static final NumberFormat TWO_FRAC_FMT = new DecimalFormat("#,##0.00");
 	
-	private static final Joiner SPACE_JOINER = Joiner.on(' ');
-	private static final Joiner NONE_JOINER = Joiner.on("");
+	private static final Function<List<String>, String> SPACE_JOINER = (list) -> String.join(" ", list);
+	private static final Function<List<String>, String> NONE_JOINER = (list) -> String.join("", list);
 	
 	private static final Pattern ECHO_ESCAPE = Pattern.compile("(?:\\\\0([0-7]{1,3})|\\\\x([0-9a-fA-F]{1,2})|\\\\u([0-9a-fA-F]{1,4})|\\\\U([0-9a-fA-F]{1,8}))");
 	
@@ -117,7 +79,7 @@ public class CommandProcessor implements Completer, Highlighter {
 	
 	private final TagPrinter printer;
 	private final DefaultHistory history = new DefaultHistory();
-	private final Map<String, Command> commands = Maps.newHashMap();
+	private final Map<String, Command> commands = new HashMap<>();
 	
 	private boolean dirty = false;
 	
@@ -164,7 +126,7 @@ public class CommandProcessor implements Completer, Highlighter {
 				parser.accepts("s", "don't separate arguments with spaces");
 			})
 			.action((set, args) -> {
-				String str = (set.has("s") ? NONE_JOINER : SPACE_JOINER).join(args);
+				String str = (set.has("s") ? NONE_JOINER : SPACE_JOINER).apply(args);
 				if (set.has("e")) {
 					str = str
 							.replace("\\\\", "\\\0\\\0")
@@ -242,11 +204,13 @@ public class CommandProcessor implements Completer, Highlighter {
 				if (set.has("raw")) {
 					infer = false;
 				}
-				Iterable<NBTTag> tags;
+				List<NBTTag> tags;
 				if (args.isEmpty()) {
-					tags = Collections.singleton(cursor);
+					tags = Collections.singletonList(cursor);
 				} else {
-					tags = Iterables.transform(args, s -> resolvePath(s).leaf);
+					tags = StreamSupport.stream(args.spliterator(), false)
+								.map(s -> resolvePath(s).leaf)
+								.toList();
 				}
 				for (NBTTag tag : tags) {
 					if (set.has("directory")) {
@@ -274,7 +238,7 @@ public class CommandProcessor implements Completer, Highlighter {
 			.action((set, args) -> {
 				if (args.isEmpty()) throw new CommandUsageException("Missing argument");
 				// REVERSE ORDER - cursor is at index 0, root is at (size()-1)
-				List<NBTTag> contextParents = Lists.newArrayList();
+				List<NBTTag> contextParents = new ArrayList<>();
 				{
 					NBTTag t = cursor;
 					while (t != null) {
@@ -348,7 +312,7 @@ public class CommandProcessor implements Completer, Highlighter {
 			.action((set, args) -> {
 				if (!args.isEmpty()) throw new CommandUsageException("Too many arguments");
 				System.out.print("Root tag name: ");
-				System.out.println(root == null ? "(no root tag)" : Strings.isNullOrEmpty(root.getName()) ? "(none)" : root.getName());
+				System.out.println(root == null ? "(no root tag)" : (root.getName() == null || root.getName().isBlank()) ? "(none)" : root.getName());
 				System.out.print("File: ");
 				String str;
 				if (fileInfo.sourceFile == FileInfo.STDIN)  {
@@ -371,7 +335,7 @@ public class CommandProcessor implements Completer, Highlighter {
 				}
 				System.out.print("File size: ...calculating...");
 				System.out.flush();
-				OutputStream out = ByteStreams.nullOutputStream();
+				OutputStream out = ByteArrayOutputStream.nullOutputStream();
 				CountingOutputStream compressedCounter = null;
 				if (fileInfo.compressionMethod != Compression.NONE && fileInfo.compressionMethod != null) {
 					out = fileInfo.compressionMethod.wrap(compressedCounter = new CountingOutputStream(out));
@@ -515,7 +479,7 @@ public class CommandProcessor implements Completer, Highlighter {
 				try {
 					try (OutputStream out = compression.wrap(new FileOutputStream(outFile))) {
 						if (json) {
-							try (OutputStreamWriter osw = new OutputStreamWriter(out, Charsets.UTF_8)) {
+							try (OutputStreamWriter osw = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
 								JsonObject obj = new JsonObject();
 								obj.addProperty("_unbted", 1);
 								obj.addProperty("rootType", NBTEd.getTypePrefix(root));
@@ -568,7 +532,7 @@ public class CommandProcessor implements Completer, Highlighter {
 				parser.accepts("no-overwrite", "error when attempting to overwrite");
 				parser.accepts("shift", "move list values aside instead of overwriting");
 				parser.accepts("type", "type of value to set").withRequiredArg();
-				List<OptionSpecBuilder> exclusive = Lists.newArrayListWithCapacity(NBTRegistry.allByTypeName().size());
+				List<OptionSpecBuilder> exclusive = new ArrayList<>(NBTRegistry.allByTypeName().size());
 				for (String s : NBTRegistry.allByTypeName().keySet()) {
 					exclusive.add(parser.accepts(s, "equivalent to --type="+s).availableUnless("type"));
 				}
@@ -612,7 +576,7 @@ public class CommandProcessor implements Completer, Highlighter {
 						}
 					}
 				}
-				String str = SPACE_JOINER.join(args.subList(1, args.size()));
+				String str = SPACE_JOINER.apply(args.subList(1, args.size()));
 				if (root == null) {
 					if (uuid && !newuuid) {
 						throw new CommandException(VALUE_CMDSPECIFIC_4, "Old-style UUIDs are two tags, and cannot be the root of a file");
@@ -709,10 +673,13 @@ public class CommandProcessor implements Completer, Highlighter {
 					}
 					if (p.immediateParent instanceof NBTIndexed) {
 						NBTIndexed li = (NBTIndexed)p.immediateParent;
-						Integer idx = Ints.tryParse(name.endsWith("]") ? name.substring(0, name.length()-1) : name);
-						if (idx == null || idx < 0) {
+
+						Optional<Integer> parsed = parseInt(name.endsWith("]") ? name.substring(0, name.length()-1) : name);
+						if (parsed.isEmpty() || parsed.get() < 0) {
 							throw new CommandException(VALUE_TAG_NOT_FOUND, name+" is not a valid list index");
 						}
+
+						int idx = parsed.get();
 						if (idx > li.size()) {
 							throw new CommandException(VALUE_TAG_NOT_FOUND, idx+" is out of bounds");
 						}
@@ -735,6 +702,14 @@ public class CommandProcessor implements Completer, Highlighter {
 					throw new CommandException(VALUE_TAG_NOT_FOUND, "Failed to resolve path");
 				}
 			}));
+	}
+
+	private static Optional<Integer> parseInt(String str) {
+		try {
+			return Optional.of(Integer.parseInt(str));
+		} catch(NumberFormatException _ex) {
+			return Optional.empty();
+		}
 	}
 	
 	private boolean prompt(String str, boolean def) {
@@ -788,7 +763,7 @@ public class CommandProcessor implements Completer, Highlighter {
 			((NBTString)tag).setValue(str);
 		} else if (tag instanceof NBTByteArray) {
 			try {
-				((NBTByteArray)tag).setValue(BaseEncoding.base64().decode(str));
+				((NBTByteArray)tag).setValue(Base64.getDecoder().decode(str));
 			} catch (IllegalArgumentException e) {
 				throw new CommandException(VALUE_BAD_USAGE, "Invalid base64");
 			}
@@ -810,7 +785,7 @@ public class CommandProcessor implements Completer, Highlighter {
 			}
 		} else if (tag instanceof NBTCompound && !str.trim().isEmpty()) {
 			try {
-				tag.destringify(new StringifiedNBTReader(new ByteArrayInputStream(str.trim().getBytes(Charsets.UTF_8))));
+				tag.destringify(new StringifiedNBTReader(new ByteArrayInputStream(str.trim().getBytes(StandardCharsets.UTF_8))));
 			} catch (IOException e) {
 				throw new CommandException(VALUE_BAD_USAGE, "SNBT parsing failed: "+e.getMessage());
 			}
@@ -865,7 +840,7 @@ public class CommandProcessor implements Completer, Highlighter {
 			}
 			if (subject != null) {
 				if (subject instanceof NBTCompound) {
-					String parentPath = Strings.nullToEmpty(p.parentPath);
+					String parentPath = stringNullToEmpty(p.parentPath);
 					if (!parentPath.isEmpty() && !p.parentPath.endsWith("/")) {
 						parentPath += "/";
 					}
@@ -880,7 +855,7 @@ public class CommandProcessor implements Completer, Highlighter {
 						candidates.add(new Candidate(parentPath, parentPath, null, null, "/", null, false));
 					}
 				} else if (subject instanceof NBTList) {
-					String parentPath = Strings.nullToEmpty(p.leaf != null ? line.word() : p.parentPath);
+					String parentPath = stringNullToEmpty(p.leaf != null ? line.word() : p.parentPath);
 					if (parentPath.endsWith("/")) {
 						parentPath = parentPath.substring(0, parentPath.length()-1);
 					}
@@ -900,6 +875,10 @@ public class CommandProcessor implements Completer, Highlighter {
 		};
 	}
 
+	private static String stringNullToEmpty(String base) {
+		return base == null? "" : base;
+	}
+
 	private ResolvedPath resolvePath(String path, ResolvePathOption... optionsArr) throws CommandException {
 		List<ResolvePathOption> options = Arrays.asList(optionsArr);
 		NBTTag cursorWork = cursor;
@@ -915,7 +894,7 @@ public class CommandProcessor implements Completer, Highlighter {
 		String parentPath = "";
 		try {
 			while (m.find()) {
-				String seg = MoreObjects.firstNonNull(m.group(1), m.group(2)).replace("//", "/").replace(slashMagic, "/");
+				String seg = firstNonNull(m.group(1), m.group(2)).replace("//", "/").replace(slashMagic, "/");
 				if (".".equals(seg) || seg.isEmpty()) {
 					// this cast is safe due to checks lower in the loop
 					// we'll never reach this point if cursorWork is not
@@ -951,19 +930,19 @@ public class CommandProcessor implements Completer, Highlighter {
 					}
 				} else if (cursorWork instanceof NBTIndexed) {
 					NBTIndexed l = (NBTIndexed)cursorWork;
-					Integer i = Ints.tryParse(seg);
+					Optional<Integer> i = parseInt(seg);
 					immediateParent = l;
 					parentPath = path.substring(0, m.start());
-					if (i == null || i < 0) {
+					if (i == null || i.get() < 0) {
 						throw new CommandException(VALUE_TAG_NOT_FOUND, seg+" is not a valid list index");
 					}
-					if (i >= l.size()) {
+					if (i.get() >= l.size()) {
 						if (options.contains(SOFT_IOOBE)) {
 							return new ResolvedPath(immediateParent, null, parentPath.replace("/[", "[").replace("//", "/"), null);
 						}
 						throw new CommandException(VALUE_TAG_NOT_FOUND, seg+" is out of bounds");
 					}
-					cursorWork = l.get(i);
+					cursorWork = l.get(i.get());
 				} else {
 					throw new CommandException(VALUE_TAG_NOT_FOUND, "Cannot traverse into "+(cursorWork == null ? "null" : NBTRegistry.typeNameFromClass(cursorWork.getClass())));
 				}
@@ -977,6 +956,12 @@ public class CommandProcessor implements Completer, Highlighter {
 			if (!options.contains(NO_ERROR)) throw e;
 			return new ResolvedPath(immediateParent, null, parentPath.replace("/[", "[").replace("//", "/"), null);
 		}
+	}
+
+	private static <T> T firstNonNull(T first, T second) {
+		if(first != null) return first;
+		if(second != null) return second;
+		throw new NullPointerException("both are null");
 	}
 
 	public void run() throws Exception {
@@ -1013,8 +998,8 @@ public class CommandProcessor implements Completer, Highlighter {
 				System.err.println();
 				if (!words.isEmpty()) {
 					String commandStr = words.get(0);
-					if (!Strings.isNullOrEmpty(commandStr)) {
-						if (Strings.isNullOrEmpty(words.get(words.size()-1))) {
+					if (!stringNullOrEmpty(commandStr)) {
+						if (stringNullOrEmpty(words.get(words.size()-1))) {
 							words = words.subList(0, words.size()-1);
 						}
 						Command command = commands.get(commandStr);
@@ -1047,8 +1032,12 @@ public class CommandProcessor implements Completer, Highlighter {
 		}
 	}
 
+	private static boolean stringNullOrEmpty(String s) {
+		return s == null || s.isBlank();
+	}
+
 	private String getPath(NBTTag t) {
-		List<String> parts = Lists.newArrayList();
+		List<String> parts = new ArrayList<>();
 		while (t != null) {
 			NBTParent parent = t.getParent();
 			if (t instanceof NBTArrayFake) {
@@ -1065,7 +1054,7 @@ public class CommandProcessor implements Completer, Highlighter {
 		if (parts.isEmpty()) {
 			return "(empty file)";
 		} else {
-			String str = NONE_JOINER.join(Lists.reverse(parts));
+			String str = NONE_JOINER.apply(parts.reversed());
 			if (str.trim().isEmpty()) {
 				str = "/";
 			}
@@ -1096,7 +1085,7 @@ public class CommandProcessor implements Completer, Highlighter {
 					OptionParser parser = new OptionParser();
 					try {
 						command.setupOptionParser(parser);
-						Map<OptionSpec<?>, String> firstEncounters = Maps.newHashMap();
+						Map<OptionSpec<?>, String> firstEncounters = new HashMap<>();
 						for (Map.Entry<String, OptionSpec<?>> en : parser.recognizedOptions().entrySet()) {
 							if (en.getValue() instanceof OptionDescriptor) {
 								OptionDescriptor od = (OptionDescriptor)en.getValue();

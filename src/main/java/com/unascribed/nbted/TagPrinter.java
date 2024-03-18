@@ -18,25 +18,11 @@
 
 package com.unascribed.nbted;
 
-import java.io.PrintStream;
-import java.io.StringWriter;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.escape.Escaper;
-import com.google.common.escape.Escapers;
-import com.google.common.io.BaseEncoding;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.stream.JsonWriter;
 import com.unascribed.miniansi.AnsiCode;
 import com.unascribed.miniansi.AnsiStream;
-
 import io.github.steveice10.opennbt.NBTRegistry;
 import io.github.steveice10.opennbt.tag.NBTCompound;
 import io.github.steveice10.opennbt.tag.NBTList;
@@ -48,6 +34,12 @@ import io.github.steveice10.opennbt.tag.array.NBTLongArray;
 import io.github.steveice10.opennbt.tag.number.NBTByte;
 import io.github.steveice10.opennbt.tag.number.NBTLong;
 import io.github.steveice10.opennbt.tag.number.NBTNumber;
+
+import java.io.PrintStream;
+import java.io.StringWriter;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class TagPrinter {
 	
@@ -95,7 +87,7 @@ public class TagPrinter {
 		}
 	}
 
-	private static final Escaper escaper = Escapers.builder()
+	private static final Escaper escaper = new Escaper()
 				.addEscape('\u0000', "\\0")
 				.addEscape('\u0001', "\\x01")
 				.addEscape('\u0002', "\\x02")
@@ -129,16 +121,15 @@ public class TagPrinter {
 				.addEscape('\u001E', "\\x1E")
 				.addEscape('\u001F', "\\x1F")
 				.addEscape('\u007F', "\\x7F")
-				.addEscape('\\', "\\\\")
-				.build();
+				.addEscape('\\', "\\\\");
 	
-	private static final ImmutableList<String> knownBooleanNames = ImmutableList.of(
+	private static final List<String> knownBooleanNames = List.of(
 			"hardcore"
 			);
-	private static final ImmutableList<String> likelyBooleanPrefixes = ImmutableList.of(
+	private static final List<String> likelyBooleanPrefixes = List.of(
 			"has", "is", "seen", "should", "on", "flag", "bool", "boolean"
 			);
-	private static final ImmutableList<String> likelyBooleanSuffixes = ImmutableList.of(
+	private static final List<String> likelyBooleanSuffixes = List.of(
 			"ing", "locked", "flag", "boolean", "bool"
 			);
 
@@ -278,8 +269,10 @@ public class TagPrinter {
 						aout.println(" [", AnsiCode.RESET);
 					}
 					// these assumptions are safe due to the checks above that set the forgeRegistry flag
-					@SuppressWarnings({"unchecked", "rawtypes"})
-					List<NBTCompound> copy = (List)Lists.newArrayList(lt);
+					List<NBTCompound> copy = StreamSupport.stream(lt.spliterator(), false)
+							.map(_tag -> (NBTCompound) _tag)
+							.collect(Collectors.toCollection(ArrayList::new));
+
 					copy.sort(new Comparator<NBTCompound>() {
 						@Override
 						@SuppressWarnings({"unchecked", "rawtypes"})
@@ -399,7 +392,7 @@ public class TagPrinter {
 			printBasic(tag, tag.stringValue(), tag.getName(), "string", AnsiCode.FG_RED, prefix, values);
 		} else if (tag instanceof NBTByteArray) {
 			if (infer && ((NBTByteArray)tag).size() > 32) {
-				printBasic(tag, BaseEncoding.base64().encode(((NBTByteArray) tag).getValue()), tag.getName(), "~base64", AnsiCode.FG_YELLOW_INTENSE, prefix, values);
+				printBasic(tag, Base64.getEncoder().encodeToString(((NBTByteArray) tag).getValue()), tag.getName(), "~base64", AnsiCode.FG_YELLOW_INTENSE, prefix, values);
 			} else {
 				printBasic(tag, colorizeArray(tag.stringValue()), tag.getName(), "byte[]", AnsiCode.FG_YELLOW_INTENSE, prefix, values);
 			}

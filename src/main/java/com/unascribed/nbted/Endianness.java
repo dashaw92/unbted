@@ -18,21 +18,12 @@
 
 package com.unascribed.nbted;
 
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
-import java.io.FilterInputStream;
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Arrays;
-
-import com.google.common.base.Charsets;
-
 import io.github.steveice10.opennbt.NBTIO.LittleEndianDataInputStream;
 import io.github.steveice10.opennbt.NBTIO.LittleEndianDataOutputStream;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public enum Endianness {
 	BIG,
@@ -67,7 +58,7 @@ public enum Endianness {
 		}
 	}
 
-	private static final byte[] EGG_NOISE = "ZZAZZAAZZAAZZZAAZZZAZAZZAZAZAZZAAZZAAZAZAZAZZAZAZAZAZAZAZZAAZZAAZZAAZZAAAZAZAZAAZZAAZZAAZAZZAAZZAAZZAZAZAZZAZZAZZAZZAZZZZZAAZAZAZAZAZAZAZ".getBytes(Charsets.UTF_8);
+	private static final byte[] EGG_NOISE = "ZZAZZAAZZAAZZZAAZZZAZAZZAZAZAZZAAZZAAZAZAZAZZAZAZAZAZAZAZZAAZZAAZZAAZZAAAZAZAZAAZZAAZZAAZAZZAAZZAAZZAZAZAZZAZZAZZAZZAZZZZZAAZAZAZAZAZAZAZ".getBytes(StandardCharsets.UTF_8);
 	
 	private static class XORInputStream extends FilterInputStream {
 		private int counter = 0;

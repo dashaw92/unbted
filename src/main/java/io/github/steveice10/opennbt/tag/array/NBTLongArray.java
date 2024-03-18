@@ -22,21 +22,20 @@
 
 package io.github.steveice10.opennbt.tag.array;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-
-import com.google.common.collect.AbstractIterator;
-import com.google.common.primitives.Longs;
-
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
 import io.github.steveice10.opennbt.tag.NBTParent;
 import io.github.steveice10.opennbt.tag.NBTTag;
 import io.github.steveice10.opennbt.tag.array.support.NBTFakeLong;
 import io.github.steveice10.opennbt.tag.number.NBTLong;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.LongStream;
 
 public class NBTLongArray extends NBTArray implements NBTParent {
 	private long[] value;
@@ -133,13 +132,17 @@ public class NBTLongArray extends NBTArray implements NBTParent {
 
 	@Override
 	public Iterator<NBTTag> iterator() {
-		return new AbstractIterator<NBTTag>() {
+		return new Iterator<NBTTag>() {
+
 			private int idx = -1;
-			
 			@Override
-			protected NBTTag computeNext() {
+			public boolean hasNext() {
+				return idx < value.length;
+			}
+
+			@Override
+			public NBTTag next() {
 				idx++;
-				if (idx >= value.length) return endOfData();
 				return new NBTFakeLong(NBTLongArray.this, idx);
 			}
 		};
@@ -154,10 +157,14 @@ public class NBTLongArray extends NBTArray implements NBTParent {
 	@Override
 	public boolean add(int idx, NBTTag tag) {
 		if (tag instanceof NBTLong) {
-			long[] lhs = Arrays.copyOfRange(value, 0, idx);
-			long[] mid = new long[] {((NBTLong) tag).longValue()};
-			long[] rhs = Arrays.copyOfRange(value, idx, value.length);
-			value = Longs.concat(lhs, mid, rhs);
+			var longs = List.of(
+			/* long[] lhs = */ Arrays.copyOfRange(value, 0, idx),
+			/* long[] mid = */ new long[] {((NBTLong) tag).longValue()},
+			/* long[] rhs = */ Arrays.copyOfRange(value, idx, value.length)
+			);
+			value = longs.stream()
+					.flatMapToLong(Arrays::stream)
+					.toArray();
 			return true;
 		}
 		return false;
@@ -190,7 +197,7 @@ public class NBTLongArray extends NBTArray implements NBTParent {
 			if (nfb.getParent() == this) {
 				long[] lhs = Arrays.copyOfRange(value, 0, nfb.getIndex());
 				long[] rhs = Arrays.copyOfRange(value, nfb.getIndex()+1, value.length);
-				value = Longs.concat(lhs, rhs);
+				value = LongStream.concat(Arrays.stream(lhs), Arrays.stream(rhs)).toArray();
 				return true;
 			}
 		}

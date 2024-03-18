@@ -22,13 +22,13 @@
 
 package io.github.steveice10.opennbt.tag;
 
+import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
+import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import com.google.common.base.Objects;
-
-import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
-import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
+import java.util.Objects;
 
 public class NBTString extends NBTTag implements Comparable<NBTString> {
 	private String value;
@@ -106,7 +106,7 @@ public class NBTString extends NBTTag implements Comparable<NBTString> {
 	
 	@Override
 	protected boolean equalsChecked(NBTTag that) {
-		return Objects.equal(this.value, ((NBTString)that).value);
+		return Objects.equals(this.value, ((NBTString) that).value);
 	}
 
 	@Override

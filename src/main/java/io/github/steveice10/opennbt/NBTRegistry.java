@@ -24,11 +24,9 @@ package io.github.steveice10.opennbt;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Maps;
 
 import io.github.steveice10.opennbt.tag.NBTCompound;
 import io.github.steveice10.opennbt.tag.NBTList;
@@ -45,9 +43,9 @@ import io.github.steveice10.opennbt.tag.number.NBTLong;
 import io.github.steveice10.opennbt.tag.number.NBTShort;
 
 public class NBTRegistry {
-	private static final BiMap<Integer, Class<? extends NBTTag>> byId = HashBiMap.create();
-	private static final BiMap<String, Class<? extends NBTTag>> byTypeName = HashBiMap.create();
-	private static final Map<Class<? extends NBTTag>, Constructor<? extends NBTTag>> constructors = Maps.newHashMap();
+	private static final Map<Integer, Class<? extends NBTTag>> byId = new HashMap<>();
+	private static final Map<String, Class<? extends NBTTag>> byTypeName = new HashMap<>();
+	private static final Map<Class<? extends NBTTag>, Constructor<? extends NBTTag>> constructors = new HashMap<>();
 
 	static {
 		register( 1, "byte", NBTByte.class);
@@ -93,12 +91,16 @@ public class NBTRegistry {
 	 * @return The id of the given tag class, or -1 if it cannot be found.
 	 */
 	public static int idForClass(Class<? extends NBTTag> clazz) {
-		if (!byId.inverse().containsKey(clazz)) return -1;
-		return byId.inverse().get(clazz);
+		return byId.entrySet()
+				.stream()
+				.filter(entry -> entry.getValue() == clazz)
+				.findFirst()
+				.map(Map.Entry::getKey)
+				.orElse(-1);
 	}
 	
-	public static BiMap<Integer, Class<? extends NBTTag>> allById() {
-		return Maps.unmodifiableBiMap(byId);
+	public static Map<Integer, Class<? extends NBTTag>> allById() {
+		return Collections.unmodifiableMap(byId);
 	}
 	
 	/**
@@ -113,8 +115,12 @@ public class NBTRegistry {
 	 * @return The type name of the given tag class, or null if it cannot be found.
 	 */
 	public static String typeNameFromClass(Class<? extends NBTTag> clazz) {
-		if (!byTypeName.inverse().containsKey(clazz)) return null;
-		return byTypeName.inverse().get(clazz);
+		return byTypeName.entrySet()
+				.stream()
+				.filter(entry -> entry.getValue() == clazz)
+				.findFirst()
+				.map(Map.Entry::getKey)
+				.orElse(null);
 	}
 	
 	public static String typeNameForTag(NBTTag tag) {
@@ -122,8 +128,8 @@ public class NBTRegistry {
 		return typeNameFromClass(tag.getClass());
 	}
 	
-	public static BiMap<String, Class<? extends NBTTag>> allByTypeName() {
-		return Maps.unmodifiableBiMap(byTypeName);
+	public static Map<String, Class<? extends NBTTag>> allByTypeName() {
+		return Collections.unmodifiableMap(byTypeName);
 	}
 
 	/**

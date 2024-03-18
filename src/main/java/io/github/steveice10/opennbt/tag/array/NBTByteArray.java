@@ -22,15 +22,6 @@
 
 package io.github.steveice10.opennbt.tag.array;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-
-import com.google.common.collect.AbstractIterator;
-import com.google.common.primitives.Bytes;
-
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTReader;
 import io.github.steveice10.opennbt.SNBTIO.StringifiedNBTWriter;
 import io.github.steveice10.opennbt.tag.NBTParent;
@@ -38,8 +29,32 @@ import io.github.steveice10.opennbt.tag.NBTTag;
 import io.github.steveice10.opennbt.tag.array.support.NBTFakeByte;
 import io.github.steveice10.opennbt.tag.number.NBTByte;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
 public class NBTByteArray extends NBTArray implements NBTParent {
-	private byte[] value;
+	private List<Byte> value;
+
+	private static List<Byte> arrToList(byte[] bytes) {
+		var list = new ArrayList<Byte>(bytes.length);
+		for(int i = 0; i < bytes.length; i++) {
+			list.add(bytes[i]);
+		}
+		return list;
+	}
+
+	private static byte[] listToArr(List<Byte> bytes) {
+		byte[] arr = new byte[bytes.size()];
+		for(int i = 0; i < bytes.size(); i++) {
+			arr[i] = bytes.get(i);
+		}
+		return arr;
+	}
 
 	public NBTByteArray(String name) {
 		this(name, new byte[0]);
@@ -47,51 +62,54 @@ public class NBTByteArray extends NBTArray implements NBTParent {
 
 	public NBTByteArray(String name, byte[] value) {
 		super(name);
-		this.value = value;
+		this.value = arrToList(value);
 	}
 
 	public byte[] getValue() {
-		return this.value.clone();
+		return listToArr(this.value);
 	}
 
 	public void setValue(byte[] value) {
 		if (value == null) return;
-		this.value = value.clone();
+		this.value = arrToList(value);
 	}
 
 	public byte getValue(int index) {
-		return this.value[index];
+		return this.value.get(index);
 	}
 
 	public void setValue(int index, byte value) {
-		this.value[index] = value;
+		this.value.set(index, value);
 	}
 	
 	@Override
 	public String stringValue() {
-		return Arrays.toString(value);
+		return Arrays.toString(listToArr(value));
 	}
 
 	@Override
 	public void read(DataInput in) throws IOException {
-		this.value = new byte[in.readInt()];
-		in.readFully(this.value);
+		byte[] arr = new byte[in.readInt()];
+		in.readFully(arr);
+		this.value = arrToList(arr);
 	}
 
 	@Override
 	public void write(DataOutput out) throws IOException {
-		out.writeInt(this.value.length);
-		out.write(this.value);
+		out.writeInt(this.value.size());
+		out.write(listToArr(this.value));
 	}
 
 	@Override
 	public void destringify(StringifiedNBTReader in) throws IOException {
 		String s = in.readUntil(true, ']');
 		String[] valueStrings = s.substring(s.indexOf(';') + 1, s.length() - 1).replaceAll(" ", "").split(",");
-		value = new byte[valueStrings.length];
-		for (int i = 0; i < value.length; i++) {
-			value[i] = Byte.parseByte(valueStrings[i]);
+		byte[] newVal = new byte[valueStrings.length];
+		for (int i = 0; i < value.size(); i++) {
+			newVal[i] = Byte.parseByte(valueStrings[i]);
 		}
+
+		value = arrToList(newVal);
 	}
 
 	@Override
@@ -109,17 +127,17 @@ public class NBTByteArray extends NBTArray implements NBTParent {
 
 	@Override
 	protected boolean equalsChecked(NBTTag that) {
-		return Arrays.equals(this.value, ((NBTByteArray)that).value);
+		return this.value.equals(((NBTByteArray)that).value);
 	}
 
 	@Override
 	public int hashCode() {
-		return Arrays.hashCode(this.value);
+		return this.value.hashCode();
 	}
 
 	@Override
 	public String toString() {
-		return "NBTByteArray"+Arrays.toString(this.value);
+		return "NBTByteArray"+Arrays.toString(listToArr(this.value));
 	}
 	
 	@Override
@@ -129,13 +147,18 @@ public class NBTByteArray extends NBTArray implements NBTParent {
 
 	@Override
 	public Iterator<NBTTag> iterator() {
-		return new AbstractIterator<NBTTag>() {
+		return new Iterator<NBTTag>() {
+
 			private int idx = -1;
-			
+
 			@Override
-			protected NBTTag computeNext() {
+			public boolean hasNext() {
+				return idx < value.size();
+			}
+
+			@Override
+			public NBTTag next() {
 				idx++;
-				if (idx >= value.length) return endOfData();
 				return new NBTFakeByte(NBTByteArray.this, idx);
 			}
 		};
@@ -143,17 +166,14 @@ public class NBTByteArray extends NBTArray implements NBTParent {
 	
 	@Override
 	public NBTFakeByte get(int idx) {
-		if (idx < 0 || idx >= value.length) throw new ArrayIndexOutOfBoundsException(idx);
+		if (idx < 0 || idx >= value.size()) throw new ArrayIndexOutOfBoundsException(idx);
 		return new NBTFakeByte(this, idx);
 	}
 	
 	@Override
 	public boolean add(int idx, NBTTag tag) {
 		if (tag instanceof NBTByte) {
-			byte[] lhs = Arrays.copyOfRange(value, 0, idx);
-			byte[] mid = new byte[] {((NBTByte) tag).byteValue()};
-			byte[] rhs = Arrays.copyOfRange(value, idx, value.length);
-			value = Bytes.concat(lhs, mid, rhs);
+			value.add(idx, ((NBTByte) tag).byteValue());
 			return true;
 		}
 		return false;
@@ -162,8 +182,7 @@ public class NBTByteArray extends NBTArray implements NBTParent {
 	@Override
 	public boolean add(NBTTag tag) {
 		if (tag instanceof NBTByte) {
-			value = Arrays.copyOf(value, value.length+1);
-			value[value.length-1] = ((NBTByte) tag).byteValue();
+			value.add(((NBTByte) tag).byteValue());
 			return true;
 		}
 		return false;
@@ -172,8 +191,8 @@ public class NBTByteArray extends NBTArray implements NBTParent {
 	@Override
 	public NBTTag set(int idx, NBTTag tag) {
 		if (tag instanceof NBTByte) {
-			byte orig = value[idx];
-			value[idx] = ((NBTByte) tag).byteValue();
+			byte orig = value.get(idx);
+			value.set(idx, ((NBTByte) tag).byteValue());
 			return new NBTByte("", orig);
 		}
 		throw new ClassCastException(tag.getClass().getSimpleName()+" is not NBTByte");
@@ -184,9 +203,7 @@ public class NBTByteArray extends NBTArray implements NBTParent {
 		if (tag instanceof NBTFakeByte) {
 			NBTFakeByte nfb = (NBTFakeByte)tag;
 			if (nfb.getParent() == this) {
-				byte[] lhs = Arrays.copyOfRange(value, 0, nfb.getIndex());
-				byte[] rhs = Arrays.copyOfRange(value, nfb.getIndex()+1, value.length);
-				value = Bytes.concat(lhs, rhs);
+				value.remove(nfb.getIndex());
 				return true;
 			}
 		}
@@ -195,17 +212,17 @@ public class NBTByteArray extends NBTArray implements NBTParent {
 
 	@Override
 	public int size() {
-		return value.length;
+		return value.size();
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return value.length == 0;
+		return value.size() == 0;
 	}
 
 	@Override
 	public void clear() {
-		value = new byte[0];
+		value = new ArrayList<>();
 	}
 	
 }

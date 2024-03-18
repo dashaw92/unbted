@@ -18,7 +18,7 @@
 
 package com.unascribed.miniansi;
 
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 
 public enum AnsiCode implements Ansi {
 	FG_BLACK(30),
@@ -72,14 +72,14 @@ public enum AnsiCode implements Ansi {
 	
 	RESET(0),
 	;
-	private final ImmutableList<Integer> codes;
+	private final List<Integer> codes;
 	private final String alone;
 	AnsiCode(Integer... codes) {
-		this.codes = ImmutableList.copyOf(codes);
+		this.codes = List.of(codes);
 		this.alone = Ansi.Utils.toString(this);
 	}
 	@Override
-	public ImmutableList<Integer> getCodes() {
+	public List<Integer> getCodes() {
 		return codes;
 	}
 	@Override
