@@ -990,12 +990,12 @@ public class CommandProcessor implements Completer, Highlighter {
 					raw = "exit";
 					words = Collections.singletonList("exit");
 				}
-				System.err.print(AnsiCode.RESET);
-				System.err.print((dirty ? AnsiCode.FG_YELLOW_INTENSE+"*" : " "));
-				System.err.print(AnsiCode.RESET);
-				System.err.print(prompt);
-				System.err.print(highlight(reader, raw).toAnsi(NBTEd.terminal));
-				System.err.println();
+//				System.err.print(AnsiCode.RESET);
+//				System.err.print((dirty ? AnsiCode.FG_YELLOW_INTENSE+"*" : " "));
+//				System.err.print(AnsiCode.RESET);
+//				System.err.print(prompt);
+//				System.err.print(highlight(reader, raw).toAnsi(NBTEd.terminal));
+//				System.err.println();
 				if (!words.isEmpty()) {
 					String commandStr = words.get(0);
 					if (!stringNullOrEmpty(commandStr)) {
