@@ -53,7 +53,18 @@ public class NBTEd {
     public static final String VERSION;
     public static final AnsiStream aout = new AnsiStream(System.out);
     public static final Gson gson = new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
-    private static final Map<Class<? extends Throwable>, String> commonExceptions = new HashMap<>();
+    private static final Map<Class<? extends Throwable>, String> commonExceptions = Map.of(
+            IndexOutOfBoundsException.class, "index out-of-bounds",
+            AssertionError.class, "assertion",
+            IllegalArgumentException.class, "illegal argument",
+            IllegalStateException.class, "illegal state",
+            NullPointerException.class, "null pointer",
+            EOFException.class, "end-of-file",
+            IOException.class, "IO",
+            IOError.class, "IO",
+            UncheckedIOException.class, "IO"
+    );
+
     private static final DateFormat fmt = new SimpleDateFormat("HH:mm:ss.SSS");
     public static boolean VERBOSE = true;
     public static JsonMode JSON_MODE = JsonMode.NONE;
@@ -69,18 +80,6 @@ public class NBTEd {
         }
 
         VERSION = ver == null ? "?.?" : ver;
-    }
-
-    static {
-        commonExceptions.put(IndexOutOfBoundsException.class, "index out-of-bounds");
-        commonExceptions.put(AssertionError.class, "assertion");
-        commonExceptions.put(IllegalArgumentException.class, "illegal argument");
-        commonExceptions.put(IllegalStateException.class, "illegal state");
-        commonExceptions.put(NullPointerException.class, "null pointer");
-        commonExceptions.put(EOFException.class, "end-of-file");
-        commonExceptions.put(IOException.class, "IO");
-        commonExceptions.put(IOError.class, "IO");
-        commonExceptions.put(UncheckedIOException.class, "IO");
     }
 
     public static void log(String msg, Object... args) {
@@ -405,7 +404,7 @@ public class NBTEd {
                 jw.setIndent("  ");
                 jw.setLenient(true);
                 gson.toJson(e, jw);
-                aout.println(sw.toString());
+                aout.println(sw);
             } else {
                 printer.printTag(tag, "", INFER, RecurseMode.FULL);
             }
@@ -472,81 +471,95 @@ public class NBTEd {
     }
 
     private static NBTTag fromJson(String name, JsonElement ele) {
-        int colon = name.indexOf(':');
-        if (colon == -1)
-            throw new IllegalArgumentException("All keys in an unbted NBT JSON file must be prefixed with their type");
-        String type = name.substring(0, colon);
-        name = name.substring(colon + 1);
-        if ("null".equals(type)) {
-            return null;
-        } else if ("byte".equals(type)) {
-            return new NBTByte(name, ele.getAsByte());
-        } else if ("double".equals(type)) {
-            return new NBTDouble(name, ele.getAsDouble());
-        } else if ("float".equals(type)) {
-            return new NBTFloat(name, ele.getAsFloat());
-        } else if ("int".equals(type)) {
-            return new NBTInt(name, ele.getAsInt());
-        } else if ("long".equals(type)) {
-            return new NBTLong(name, ele.getAsLong());
-        } else if ("short".equals(type)) {
-            return new NBTShort(name, ele.getAsShort());
-        } else if ("compound".equals(type)) {
-            NBTCompound out = new NBTCompound(name);
-            for (Map.Entry<String, JsonElement> en : ele.getAsJsonObject().entrySet()) {
-                if ("_unbted".equals(en.getKey())) continue;
-                out.put(fromJson(en.getKey(), en.getValue()));
-            }
-            return out;
-        } else if (type.startsWith("list<")) {
-            int closer = type.lastIndexOf('>');
-            if (closer == -1) {
-                throw new IllegalArgumentException("Expected closing > in list type, didn't find one (for " + type + ")");
-            }
-            String innerType = type.substring(5, closer);
-            if ("?".equals(innerType)) {
-                if (ele == null || ele.getAsJsonArray().size() == 0) {
-                    return new NBTList(name);
-                } else {
-                    throw new IllegalArgumentException("Cannot have list of unknown type with elements");
+        String[] split = name.split(":");
+        if(split.length != 2) throw new IllegalArgumentException("All keys in an unbted NBT JSON file must be prefixed with their type");
+
+        String type = split[0];
+        String key = split[1];
+
+        return switch(type) {
+            case "null" -> null;
+            case "byte" -> new NBTByte(key, ele.getAsByte());
+            case "double" -> new NBTDouble(key, ele.getAsDouble());
+            case "float" -> new NBTFloat(key, ele.getAsFloat());
+            case "int" -> new NBTInt(key, ele.getAsInt());
+            case "long" -> new NBTLong(key, ele.getAsLong());
+            case "short" -> new NBTShort(key, ele.getAsShort());
+            case "string" -> new NBTString(key, ele.getAsString());
+            case "byte-array" -> new NBTByteArray(key, Base64.getDecoder().decode(ele.getAsString()));
+            case "int-array" -> {
+                JsonArray arr = ele.getAsJsonArray();
+                int[] out = new int[arr.size()];
+                for (int i = 0; i < out.length; i++) {
+                    out[i] = arr.get(i).getAsInt();
                 }
-            } else {
-                NBTList out = new NBTList(name);
-                for (JsonElement child : ele.getAsJsonArray()) {
-                    out.add(fromJson(innerType + ":", child));
+                yield new NBTIntArray(key, out);
+            }
+            case "long-array" -> {
+                JsonArray arr = ele.getAsJsonArray();
+                long[] out = new long[arr.size()];
+                for (int i = 0; i < out.length; i++) {
+                    out[i] = arr.get(i).getAsLong();
                 }
-                return out;
+                yield new NBTLongArray(key, out);
             }
-        } else if ("string".equals(type)) {
-            return new NBTString(name, ele.getAsString());
-        } else if ("byte-array".equals(type)) {
-            return new NBTByteArray(name, Base64.getDecoder().decode(ele.getAsString()));
-        } else if ("int-array".equals(type)) {
-            JsonArray arr = ele.getAsJsonArray();
-            int[] out = new int[arr.size()];
-            for (int i = 0; i < out.length; i++) {
-                out[i] = arr.get(i).getAsInt();
+            case "compound" -> {
+                NBTCompound out = new NBTCompound(key);
+                for (Map.Entry<String, JsonElement> en : ele.getAsJsonObject().entrySet()) {
+                    if ("_unbted".equals(en.getKey())) continue;
+                    out.put(fromJson(en.getKey(), en.getValue()));
+                }
+                yield out;
             }
-            return new NBTIntArray(name, out);
-        } else if ("long-array".equals(type)) {
-            JsonArray arr = ele.getAsJsonArray();
-            long[] out = new long[arr.size()];
-            for (int i = 0; i < out.length; i++) {
-                out[i] = arr.get(i).getAsLong();
+            default -> {
+                if (type.startsWith("list<")) {
+                    int closer = type.lastIndexOf('>');
+                    if (closer == -1) {
+                        throw new IllegalArgumentException("Expected closing > in list type, didn't find one (for " + type + ")");
+                    }
+                    String innerType = type.substring(5, closer);
+                    if ("?".equals(innerType)) {
+                        if (ele == null || ele.getAsJsonArray().size() == 0) {
+                            yield new NBTList(key);
+                        } else {
+                            throw new IllegalArgumentException("Cannot have list of unknown type with elements");
+                        }
+                    } else {
+                        NBTList out = new NBTList(key);
+                        for (JsonElement child : ele.getAsJsonArray()) {
+                            out.add(fromJson(innerType + ":", child));
+                        }
+                        yield out;
+                    }
+                }
+
+                throw new IllegalArgumentException("Unknown type " + type + " when parsing key " + type + ":" + key);
             }
-            return new NBTLongArray(name, out);
-        } else {
-            throw new IllegalArgumentException("Unknown type " + type + " when parsing key " + type + ":" + name);
-        }
+        };
     }
 
     public static JsonElement toJson(NBTTag tag, boolean roundTrip) {
-        if (tag == null) {
-            return JsonNull.INSTANCE;
-        } else if (tag instanceof NBTCompound) {
+        return switch(tag) {
+            case NBTCompound compound -> JSONFromNBT.fromNBTCompound(roundTrip, compound);
+            case NBTList list -> JSONFromNBT.fromNBTList(roundTrip, list);
+            case NBTNumber number -> new JsonPrimitive(number.numberValue());
+            case NBTString string -> new JsonPrimitive(string.stringValue());
+            case NBTByteArray bArr -> new JsonPrimitive(Base64.getEncoder().encodeToString(bArr.getValue()));
+            case NBTIntArray iArr -> JSONFromNBT.fromIntArr(roundTrip, iArr);
+            case NBTLongArray lArr -> JSONFromNBT.fromLongArr(lArr);
+            default -> {
+                if(tag == null) yield JsonNull.INSTANCE;
+                throw new IllegalArgumentException("Don't know how to convert " + tag.getClass().getSimpleName() + " to JSON");
+            }
+        };
+    }
+
+    private static final class JSONFromNBT {
+        private JSONFromNBT() {}
+
+        private static JsonElement fromNBTCompound(boolean roundTrip, NBTCompound compound) {
             JsonObject out = new JsonObject();
-            NBTCompound in = (NBTCompound) tag;
-            for (NBTTag t : in.values()) {
+            for (NBTTag t : compound.values()) {
                 out.add((roundTrip ? getTypePrefix(t) + ":" : "") + t.getName(), toJson(t, roundTrip));
             }
             if (!roundTrip) {
@@ -574,21 +587,17 @@ public class NBTEd {
                 out = sorted;
             }
             return out;
-        } else if (tag instanceof NBTList) {
+        }
+
+        private static JsonElement fromNBTList(boolean roundTrip, NBTList list) {
             JsonArray out = new JsonArray();
-            NBTList in = (NBTList) tag;
-            for (NBTTag t : in) {
+            for (NBTTag t : list) {
                 out.add(toJson(t, roundTrip));
             }
             return out;
-        } else if (tag instanceof NBTNumber) {
-            return new JsonPrimitive(((NBTNumber) tag).numberValue());
-        } else if (tag instanceof NBTString) {
-            return new JsonPrimitive(((NBTString) tag).stringValue());
-        } else if (tag instanceof NBTByteArray) {
-            return new JsonPrimitive(Base64.getEncoder().encodeToString(((NBTByteArray) tag).getValue()));
-        } else if (tag instanceof NBTIntArray) {
-            NBTIntArray arr = ((NBTIntArray) tag);
+        }
+
+        private static JsonElement fromIntArr(boolean roundTrip, NBTIntArray arr) {
             if (!roundTrip && arr.size() == 4) {
                 return new JsonPrimitive(UUIDs.fromIntArray(arr.getValue()).toString());
             }
@@ -597,14 +606,14 @@ public class NBTEd {
                 out.add(v);
             }
             return out;
-        } else if (tag instanceof NBTLongArray) {
+        }
+
+        private static JsonElement fromLongArr(NBTLongArray arr) {
             JsonArray out = new JsonArray();
-            for (long v : ((NBTLongArray) tag).getValue()) {
+            for (long v : arr.getValue()) {
                 out.add(v);
             }
             return out;
-        } else {
-            throw new IllegalArgumentException("Don't know how to convert " + tag.getClass().getSimpleName() + " to JSON");
         }
     }
 
@@ -620,7 +629,7 @@ public class NBTEd {
     public static void displayEmbeddedFileInPager(String file) throws Exception {
         if (PAGER && !"dumb".equals(terminal.getType())) {
             Less less = new Less(NBTEd.terminal, new File("").toPath());
-            less.run(Collections.singletonList(new URLSource(ClassLoader.getSystemResource(file), file)));
+            less.run((new ArrayList<>(List.of(new URLSource(ClassLoader.getSystemResource(file), file)))));
         } else {
             try (var br = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream(file)))) {
                 System.err.println(br.lines().collect(Collectors.joining("\n")));

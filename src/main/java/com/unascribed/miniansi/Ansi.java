@@ -25,7 +25,7 @@ import java.util.List;
 public interface Ansi {
     List<Integer> getCodes();
 
-    public static final class Utils {
+    final class Utils {
         public static String toString(Ansi... codes) {
             StringBuilder sb = new StringBuilder();
             toAppendableUnchecked(sb, codes);

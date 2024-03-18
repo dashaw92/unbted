@@ -777,8 +777,11 @@ public class CommandProcessor implements Completer, Highlighter {
     private void parseAndSet(NBTTag tag, String str) {
         if (tag instanceof NBTNumber) {
             if ("true".equals(str)) {
+                //TODO No-op, should NBTNumber be set here?
+                //this is a bug I think
                 str = "1";
             } else if ("false".equals(str)) {
+                //and here
                 str = "0";
             }
         }
