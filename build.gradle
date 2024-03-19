@@ -23,10 +23,8 @@ repositories {
 dependencies {
 	implementation 'com.google.code.gson:gson:2.10.1'
 	implementation 'net.sf.jopt-simple:jopt-simple:6.0-alpha-3'
-	implementation 'org.jline:jline-terminal:3.25.1'
-	implementation 'org.jline:jline-terminal-jansi:3.25.1'
-	implementation 'org.jline:jline-reader:3.25.1'
-	implementation 'org.jline:jline-builtins:3.25.1'
+	implementation 'org.fusesource.jansi:jansi:2.4.1'
+	implementation 'org.jline:jline:3.25.1'
 }
 
 task proguard(type: proguard.gradle.ProGuardTask) {
@@ -44,6 +42,7 @@ task proguard(type: proguard.gradle.ProGuardTask) {
 	dontobfuscate
 	
 	keep 'class com.unascribed.nbted.** { *; }'
+	keep 'class org.jline.** { *; }'
 	keepclassmembers 'class ** { *; }'
 
 	dontwarn 'io.airlift.compress.**' //sun.misc.Unsafe warning

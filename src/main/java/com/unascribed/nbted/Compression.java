@@ -43,34 +43,24 @@ public enum Compression {
 
     public InputStream wrap(InputStream is) throws IOException {
         if (is == null) return null;
-        switch (this) {
-            case NONE:
-                return is;
-            case DEFLATE:
-                return new InflaterInputStream(is);
-            case GZIP:
-                return new GZIPInputStream(is);
-            case ZSTD:
-                return new ZstdInputStream(is);
-            default:
-                throw new AssertionError("missing case for " + this);
-        }
+        return switch (this) {
+            case NONE -> is;
+            case DEFLATE -> new InflaterInputStream(is);
+            case GZIP -> new GZIPInputStream(is);
+            case ZSTD -> new ZstdInputStream(is);
+            default -> throw new AssertionError("missing case for " + this);
+        };
     }
 
     public OutputStream wrap(OutputStream os) throws IOException {
         if (os == null) return null;
-        switch (this) {
-            case NONE:
-                return os;
-            case DEFLATE:
-                return new DeflaterOutputStream(os);
-            case GZIP:
-                return new GZIPOutputStream(os);
-            case ZSTD:
-                return new ZstdOutputStream(os);
-            default:
-                throw new AssertionError("missing case for " + this);
-        }
+        return switch (this) {
+            case NONE -> os;
+            case DEFLATE -> new DeflaterOutputStream(os);
+            case GZIP -> new GZIPOutputStream(os);
+            case ZSTD -> new ZstdOutputStream(os);
+            default -> throw new AssertionError("missing case for " + this);
+        };
     }
 
     @Override

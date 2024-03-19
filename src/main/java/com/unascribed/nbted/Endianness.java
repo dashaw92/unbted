@@ -33,43 +33,31 @@ public enum Endianness {
     private static final byte[] EGG_NOISE = "ZZAZZAAZZAAZZZAAZZZAZAZZAZAZAZZAAZZAAZAZAZAZZAZAZAZAZAZAZZAAZZAAZZAAZZAAAZAZAZAAZZAAZZAAZAZZAAZZAAZZAZAZAZZAZZAZZAZZAZZZZZAAZAZAZAZAZAZAZ".getBytes(StandardCharsets.UTF_8);
 
     public DataInput wrap(InputStream in) {
-        switch (this) {
-            case BIG:
-                return new DataInputStream(in);
-            case LITTLE:
-                return new LittleEndianDataInputStream(in);
-            case ZZAZZ:
-                return new DataInputStream(new XORInputStream(in, EGG_NOISE));
-            default:
-                throw new AssertionError("missing case for " + this);
-        }
+        return switch (this) {
+            case BIG -> new DataInputStream(in);
+            case LITTLE -> new LittleEndianDataInputStream(in);
+            case ZZAZZ -> new DataInputStream(new XORInputStream(in, EGG_NOISE));
+            default -> throw new AssertionError("missing case for " + this);
+        };
     }
 
     public DataOutput wrap(OutputStream out) {
-        switch (this) {
-            case BIG:
-                return new DataOutputStream(out);
-            case LITTLE:
-                return new LittleEndianDataOutputStream(out);
-            case ZZAZZ:
-                return new DataOutputStream(new XOROutputStream(out, EGG_NOISE));
-            default:
-                throw new AssertionError("missing case for " + this);
-        }
+        return switch (this) {
+            case BIG -> new DataOutputStream(out);
+            case LITTLE -> new LittleEndianDataOutputStream(out);
+            case ZZAZZ -> new DataOutputStream(new XOROutputStream(out, EGG_NOISE));
+            default -> throw new AssertionError("missing case for " + this);
+        };
     }
 
     @Override
     public String toString() {
-        switch (this) {
-            case BIG:
-                return "Big (Java Edition)";
-            case LITTLE:
-                return "Little (Legacy Pocket Edition)";
-            case ZZAZZ:
-                return "ZZAZZAAZZ (ZZAAZZAAZZAAZZAAZZAAZZAAZZAAZZ)";
-            default:
-                throw new AssertionError("missing case for " + this);
-        }
+        return switch (this) {
+            case BIG -> "Big (Java Edition)";
+            case LITTLE -> "Little (Legacy Pocket Edition)";
+            case ZZAZZ -> "ZZAZZAAZZ (ZZAAZZAAZZAAZZAAZZAAZZAAZZAAZZ)";
+            default -> throw new AssertionError("missing case for " + this);
+        };
     }
 
     private static class XORInputStream extends FilterInputStream {

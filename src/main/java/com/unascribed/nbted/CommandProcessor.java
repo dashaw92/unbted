@@ -51,7 +51,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.StreamSupport;
 
 import static com.unascribed.nbted.CommandException.*;
 import static com.unascribed.nbted.ResolvePathOption.*;
@@ -64,10 +63,10 @@ public class CommandProcessor implements Completer, Highlighter {
     private static final Function<List<String>, String> SPACE_JOINER = (list) -> String.join(" ", list);
     private static final Function<List<String>, String> NONE_JOINER = (list) -> String.join("", list);
 
-    private static final Pattern ECHO_ESCAPE = Pattern.compile("(?:\\\\0([0-7]{1,3})|\\\\x([0-9a-fA-F]{1,2})|\\\\u([0-9a-fA-F]{1,4})|\\\\U([0-9a-fA-F]{1,8}))");
+    private static final Pattern ECHO_ESCAPE = Pattern.compile("\\\\0([0-7]{1,3})|\\\\x([0-9a-fA-F]{1,2})|\\\\u([0-9a-fA-F]{1,4})|\\\\U([0-9a-fA-F]{1,8})");
 
-    private static final Pattern PATH_SEGMENT = Pattern.compile("(?:^|\\/)([^\\[\\]\\/]*?)(?:$|\\/)|\\[([^\\[\\]]*?)\\]");
-    private static final Pattern HIGHLIGHTED = Pattern.compile("([^\\\\]|^)([\"'](?:.*?[^\\\\]|)([\\\"']|$)|\\\\.)");
+    private static final Pattern PATH_SEGMENT = Pattern.compile("(?:^|/)([^\\[\\]/]*?)(?:$|/)|\\[([^\\[\\]]*?)]");
+    private static final Pattern HIGHLIGHTED = Pattern.compile("([^\\\\]|^)([\"'](?:.*?[^\\\\]|)([\"']|$)|\\\\.)");
     private final TagPrinter printer;
     private final DefaultHistory history = new DefaultHistory();
     private final Map<String, Command> commands = new HashMap<>();
@@ -88,7 +87,7 @@ public class CommandProcessor implements Completer, Highlighter {
                 .description("show GPLv3 warranty sections")
                 .usage("{}")
                 .action((set, args) -> {
-                    if (args.size() > 0) throw new CommandUsageException("Too many arguments");
+                    if (!args.isEmpty()) throw new CommandUsageException("Too many arguments");
                     NBTEd.displayEmbeddedFileInPager("warranty.txt");
                 }));
         addCommand(Command.create()
@@ -96,7 +95,7 @@ public class CommandProcessor implements Completer, Highlighter {
                 .description("show GPLv3 text")
                 .usage("{}")
                 .action((set, args) -> {
-                    if (args.size() > 0) throw new CommandUsageException("Too many arguments");
+                    if (!args.isEmpty()) throw new CommandUsageException("Too many arguments");
                     NBTEd.displayEmbeddedFileInPager("license.txt");
                 }));
         addCommand(Command.create()
@@ -104,7 +103,7 @@ public class CommandProcessor implements Completer, Highlighter {
                 .description("show help")
                 .usage("{}")
                 .action((set, args) -> {
-                    if (args.size() > 0) throw new CommandUsageException("Too many arguments");
+                    if (!args.isEmpty()) throw new CommandUsageException("Too many arguments");
                     NBTEd.displayEmbeddedFileInPager("commands-help.txt");
                 }));
         addCommand(Command.create()
@@ -137,25 +136,15 @@ public class CommandProcessor implements Completer, Highlighter {
                             str = str.substring(0, str.indexOf("\\c"));
                         }
                         Matcher matcher = ECHO_ESCAPE.matcher(str);
-                        StringBuffer buf = new StringBuffer();
+                        StringBuilder buf = new StringBuilder();
                         while (matcher.find()) {
-                            int codepoint;
-                            switch (matcher.group(0).charAt(1)) {
-                                case '0':
-                                    codepoint = Integer.parseInt(matcher.group(1), 8);
-                                    break;
-                                case 'x':
-                                    codepoint = Integer.parseInt(matcher.group(2), 16);
-                                    break;
-                                case 'u':
-                                    codepoint = Integer.parseInt(matcher.group(3), 16);
-                                    break;
-                                case 'U':
-                                    codepoint = Integer.parseInt(matcher.group(4), 16);
-                                    break;
-                                default:
-                                    throw new AssertionError("Unrecognized escape " + matcher.group(0));
-                            }
+                            int codepoint = switch (matcher.group(0).charAt(1)) {
+                                case '0' -> Integer.parseInt(matcher.group(1), 8);
+                                case 'x' -> Integer.parseInt(matcher.group(2), 16);
+                                case 'u' -> Integer.parseInt(matcher.group(3), 16);
+                                case 'U' -> Integer.parseInt(matcher.group(4), 16);
+                                default -> throw new AssertionError("Unrecognized escape " + matcher.group(0));
+                            };
                             matcher.appendReplacement(buf, Matcher.quoteReplacement(new String(Character.toChars(codepoint))));
                         }
                         matcher.appendTail(buf);
@@ -179,7 +168,7 @@ public class CommandProcessor implements Completer, Highlighter {
                     if (args.isEmpty()) {
                         cursor = root;
                     } else {
-                        cursor = resolvePath(args.get(0), PARENTS_ONLY).leaf;
+                        cursor = resolvePath(args.getFirst(), PARENTS_ONLY).leaf();
                     }
                 }));
         addCommand(Command.create()
@@ -192,7 +181,7 @@ public class CommandProcessor implements Completer, Highlighter {
                     parser.acceptsAll(Arrays.asList("d", "directory"), "print just the tag, no children");
                     parser.acceptsAll(Arrays.asList("s", "include-self"), "print the tag in addition to children");
                     parser.acceptsAll(Arrays.asList("r", "raw"), "do not infer types");
-                    parser.acceptsAll(Arrays.asList("base64"), "print byte arrays as base64");
+                    parser.acceptsAll(List.of("base64"), "print byte arrays as base64");
                     parser.acceptsAll(Arrays.asList("l", "1", "a", "A"), "ignored");
                 })
                 .action((alias, set, args) -> {
@@ -204,8 +193,8 @@ public class CommandProcessor implements Completer, Highlighter {
                     if (args.isEmpty()) {
                         tags = Collections.singletonList(cursor);
                     } else {
-                        tags = StreamSupport.stream(args.spliterator(), false)
-                                .map(s -> resolvePath(s).leaf)
+                        tags = args.stream()
+                                .map(s -> resolvePath(s).leaf())
                                 .toList();
                     }
                     for (NBTTag tag : tags) {
@@ -244,9 +233,8 @@ public class CommandProcessor implements Completer, Highlighter {
                     }
                     for (String s : args) {
                         try {
-                            NBTTag t = resolvePath(s).leaf;
-                            if (t instanceof NBTCompound) {
-                                NBTCompound ct = (NBTCompound) t;
+                            NBTTag t = resolvePath(s).leaf();
+                            if (t instanceof NBTCompound ct) {
                                 if (!ct.isEmpty() && !set.has("recursive")) {
                                     throw new CommandException(VALUE_CMDSPECIFIC_1, "Refusing to delete non-empty compound " + getPath(t) + " - add -r to override");
                                 }
@@ -272,7 +260,7 @@ public class CommandProcessor implements Completer, Highlighter {
                                 if (contextParents.isEmpty()) {
                                     cursor = null;
                                 } else {
-                                    cursor = contextParents.get(0);
+                                    cursor = contextParents.getFirst();
                                 }
                             }
                         } catch (Exception e) {
@@ -417,7 +405,7 @@ public class CommandProcessor implements Completer, Highlighter {
                         outFile = fileInfo.sourceFile;
                     }
                     if (!args.isEmpty()) {
-                        String str = args.get(0);
+                        String str = args.getFirst();
                         if (str.startsWith("~/")) {
                             outFile = new File(System.getProperty("user.home") + str.substring(1));
                         } else {
@@ -511,7 +499,7 @@ public class CommandProcessor implements Completer, Highlighter {
                 .action((set, args) -> {
                     if (args.isEmpty()) throw new CommandUsageException("Missing argument");
                     for (String s : args) {
-                        NBTTag tag = resolvePath(s, NO_ERROR).leaf;
+                        NBTTag tag = resolvePath(s, NO_ERROR).leaf();
                         if (tag == null) {
                             commands.get("set").execute("set", "--type=compound", s);
                         } else if (!(tag instanceof NBTCompound)) {
@@ -534,7 +522,7 @@ public class CommandProcessor implements Completer, Highlighter {
                     }
                     exclusive.add(parser.accepts("olduuid", "equivalent to --type=olduuid").availableUnless("type"));
                     exclusive.add(parser.accepts("newuuid", "equivalent to --type=newuuid").availableUnless("type"));
-                    parser.mutuallyExclusive(exclusive.toArray(new OptionSpecBuilder[exclusive.size()]));
+                    parser.mutuallyExclusive(exclusive.toArray(new OptionSpecBuilder[0]));
                 })
                 .action((alias, set, args) -> {
                     if (args.isEmpty()) throw new CommandUsageException("Not enough arguments");
@@ -542,7 +530,7 @@ public class CommandProcessor implements Completer, Highlighter {
                     if ("create".equals(alias) || "new".equals(alias)) noOverwrite = true;
                     boolean shift = set.has("shift");
                     if ("add".equals(alias)) shift = true;
-                    String path = args.get(0);
+                    String path = args.getFirst();
                     boolean uuid = false;
                     boolean newuuid = false;
                     Class<? extends NBTTag> explicitType = null;
@@ -597,11 +585,11 @@ public class CommandProcessor implements Completer, Highlighter {
                         pathNoTrailingSlashes = pathNoTrailingSlashes.substring(0, pathNoTrailingSlashes.length() - 1);
                     }
                     ResolvedPath p = resolvePath(path, CREATE_PARENTS, SOFT_IOOBE);
-                    if (p.leaf == null && explicitType == null) {
+                    if (p.leaf() == null && explicitType == null) {
                         ResolvedPath maybe = resolvePath(pathNoTrailingSlashes + "Most", NO_ERROR);
-                        if (maybe.leaf != null && maybe.leaf instanceof NBTLong) {
+                        if (maybe.leaf() instanceof NBTLong) {
                             maybe = resolvePath(pathNoTrailingSlashes + "Least", NO_ERROR);
-                            if (maybe.leaf != null && maybe.leaf instanceof NBTLong) {
+                            if (maybe.leaf() instanceof NBTLong) {
                                 uuid = true;
                             }
                         }
@@ -624,12 +612,11 @@ public class CommandProcessor implements Completer, Highlighter {
                         }
                         return;
                     }
-                    if (p.leaf != null && !(p.immediateParent instanceof NBTIndexed)) {
+                    if (p.leaf() != null && !(p.immediateParent() instanceof NBTIndexed)) {
                         if (noOverwrite) {
                             throw new CommandException(VALUE_WONT_OVERWRITE, "Refusing to overwrite existing tag");
                         }
-                        if (p.leaf instanceof NBTIndexed && shift) {
-                            NBTIndexed idx = (NBTIndexed) p.leaf;
+                        if (p.leaf() instanceof NBTIndexed idx && shift) {
                             if (explicitType != null && explicitType != idx.getElementType()) {
                                 throw new CommandException(VALUE_CMDSPECIFIC_1, "Explicit type " + NBTRegistry.typeNameFromClass(explicitType) + " is incompatible with list type " + NBTRegistry.typeNameFromClass(idx.getElementType()));
                             }
@@ -644,32 +631,31 @@ public class CommandProcessor implements Completer, Highlighter {
                             }
                             idx.add(tag);
                         } else {
-                            if (explicitType != null && explicitType != p.leaf.getClass()) {
-                                throw new CommandException(VALUE_CMDSPECIFIC_1, "Explicit type " + NBTRegistry.typeNameFromClass(explicitType) + " is incompatible with existing type " + NBTRegistry.typeNameFromClass(p.leaf.getClass()));
+                            if (explicitType != null && explicitType != p.leaf().getClass()) {
+                                throw new CommandException(VALUE_CMDSPECIFIC_1, "Explicit type " + NBTRegistry.typeNameFromClass(explicitType) + " is incompatible with existing type " + NBTRegistry.typeNameFromClass(p.leaf().getClass()));
                             }
                             try {
-                                parseAndSet(p.leaf, str);
+                                parseAndSet(p.leaf(), str);
                                 dirty = true;
                             } catch (NumberFormatException e) {
                                 throw new CommandException(VALUE_CMDSPECIFIC_2, "Invalid number " + str);
                             }
                         }
-                    } else if (p.immediateParent != null) {
-                        if (explicitType == null && p.immediateParent instanceof NBTIndexed) {
-                            explicitType = ((NBTIndexed) p.immediateParent).getElementType();
+                    } else if (p.immediateParent() != null) {
+                        if (explicitType == null && p.immediateParent() instanceof NBTIndexed) {
+                            explicitType = ((NBTIndexed) p.immediateParent()).getElementType();
                         }
                         if (explicitType == null) {
                             throw new CommandException(VALUE_CMDSPECIFIC_3, "An explicit type must be specified to create new tags");
                         }
-                        String name = path.substring(p.parentPath.length());
-                        NBTTag tag = NBTRegistry.createInstance(explicitType, p.immediateParent instanceof NBTIndexed ? "" : name);
+                        String name = path.substring(p.parentPath().length());
+                        NBTTag tag = NBTRegistry.createInstance(explicitType, p.immediateParent() instanceof NBTIndexed ? "" : name);
                         try {
                             parseAndSet(tag, str);
                         } catch (NumberFormatException e) {
                             throw new CommandException(VALUE_CMDSPECIFIC_2, "Invalid number " + str);
                         }
-                        if (p.immediateParent instanceof NBTIndexed) {
-                            NBTIndexed li = (NBTIndexed) p.immediateParent;
+                        if (p.immediateParent() instanceof NBTIndexed li) {
 
                             Optional<Integer> parsed = parseInt(name.endsWith("]") ? name.substring(0, name.length() - 1) : name);
                             if (parsed.isEmpty() || parsed.get() < 0) {
@@ -689,10 +675,10 @@ public class CommandProcessor implements Completer, Highlighter {
                                     li.set(idx, tag);
                                 }
                             }
-                        } else if (p.immediateParent instanceof NBTCompound) {
-                            ((NBTCompound) p.immediateParent).put(tag);
+                        } else if (p.immediateParent() instanceof NBTCompound) {
+                            ((NBTCompound) p.immediateParent()).put(tag);
                         } else {
-                            throw new CommandException(VALUE_GENERAL_ERROR, "Unrecognized parent type " + p.immediateParent.getClass().getSimpleName());
+                            throw new CommandException(VALUE_GENERAL_ERROR, "Unrecognized parent type " + p.immediateParent().getClass().getSimpleName());
                         }
                         dirty = true;
                     } else {
@@ -846,15 +832,15 @@ public class CommandProcessor implements Completer, Highlighter {
             if (line.word().startsWith("-") && line.wordIndex() < line.words().indexOf("--")) return;
             ResolvedPath p = resolvePath(line.word(), NO_ERROR, parentOnly ? PARENTS_ONLY : null);
             NBTParent subject;
-            if (p.leaf != null && p.leaf instanceof NBTParent) {
-                subject = (NBTParent) p.leaf;
+            if (p.leaf() instanceof NBTParent) {
+                subject = (NBTParent) p.leaf();
             } else {
-                subject = p.immediateParent;
+                subject = p.immediateParent();
             }
             if (subject != null) {
                 if (subject instanceof NBTCompound) {
-                    String parentPath = stringNullToEmpty(p.parentPath);
-                    if (!parentPath.isEmpty() && !p.parentPath.endsWith("/")) {
+                    String parentPath = stringNullToEmpty(p.parentPath());
+                    if (!parentPath.isEmpty() && !p.parentPath().endsWith("/")) {
                         parentPath += "/";
                     }
                     for (NBTTag tag : subject) {
@@ -864,11 +850,11 @@ public class CommandProcessor implements Completer, Highlighter {
                             candidates.add(new Candidate(str, str, null, null, suffix, null, !(tag instanceof NBTParent)));
                         }
                     }
-                    if (p.parentPath == null || !p.parentPath.endsWith("/")) {
+                    if (p.parentPath() == null || !p.parentPath().endsWith("/")) {
                         candidates.add(new Candidate(parentPath, parentPath, null, null, "/", null, false));
                     }
                 } else if (subject instanceof NBTList) {
-                    String parentPath = stringNullToEmpty(p.leaf != null ? line.word() : p.parentPath);
+                    String parentPath = stringNullToEmpty(p.leaf() != null ? line.word() : p.parentPath());
                     if (parentPath.endsWith("/")) {
                         parentPath = parentPath.substring(0, parentPath.length() - 1);
                     }
@@ -896,6 +882,7 @@ public class CommandProcessor implements Completer, Highlighter {
         }
         NBTParent immediateParent = cursorWork == null ? null : cursorWork.getParent();
         // shhhhhhHHHHHH
+        // TODO: Figure out why this is here
         String slashMagic = "!!@@ThisIsAHopefullyUniqueStringToHackilyFixABugThatIsCausingMajorProblemsRightNow@@!!";
         path = path.replace("\\/", slashMagic);
         path = path.replace("/", "//").replace("[", "/[").replace("]//", "]/");
@@ -922,8 +909,7 @@ public class CommandProcessor implements Completer, Highlighter {
                     parentPath = path.substring(0, m.start());
                     continue;
                 }
-                if (cursorWork instanceof NBTCompound) {
-                    NBTCompound c = (NBTCompound) cursorWork;
+                if (cursorWork instanceof NBTCompound c) {
                     immediateParent = c;
                     parentPath = path.substring(0, m.start());
                     if (c.contains(seg)) {
@@ -939,12 +925,11 @@ public class CommandProcessor implements Completer, Highlighter {
                             throw new CommandException(VALUE_TAG_NOT_FOUND, path.substring(0, m.end()).replace("/[", "[").replace("//", "/") + " does not exist");
                         }
                     }
-                } else if (cursorWork instanceof NBTIndexed) {
-                    NBTIndexed l = (NBTIndexed) cursorWork;
+                } else if (cursorWork instanceof NBTIndexed l) {
                     Optional<Integer> i = parseInt(seg);
                     immediateParent = l;
                     parentPath = path.substring(0, m.start());
-                    if (i == null || i.get() < 0) {
+                    if (i.isEmpty() || i.get() < 0) {
                         throw new CommandException(VALUE_TAG_NOT_FOUND, seg + " is not a valid list index");
                     }
                     if (i.get() >= l.size()) {
@@ -985,14 +970,12 @@ public class CommandProcessor implements Completer, Highlighter {
         while (running) {
             String prompt = "[" + getPath(cursor) + "]> ";
             try {
-                String raw;
                 List<String> words;
                 try {
-                    raw = reader.readLine("%{" + AnsiCode.RESET + "%}" + (dirty ? AnsiCode.FG_YELLOW_INTENSE + "*" : " ") + "%{" + AnsiCode.RESET + "%}" + prompt);
+                    reader.readLine("%{" + AnsiCode.RESET + "%}" + (dirty ? AnsiCode.FG_YELLOW_INTENSE + "*" : " ") + "%{" + AnsiCode.RESET + "%}" + prompt);
                     ParsedLine parsed = reader.getParsedLine();
                     words = parsed.words();
                 } catch (EndOfFileException e) {
-                    raw = "exit";
                     words = Collections.singletonList("exit");
                 }
 //				System.err.print(AnsiCode.RESET);
@@ -1002,9 +985,9 @@ public class CommandProcessor implements Completer, Highlighter {
 //				System.err.print(highlight(reader, raw).toAnsi(NBTEd.terminal));
 //				System.err.println();
                 if (!words.isEmpty()) {
-                    String commandStr = words.get(0);
+                    String commandStr = words.getFirst();
                     if (!stringNullOrEmpty(commandStr)) {
-                        if (stringNullOrEmpty(words.get(words.size() - 1))) {
+                        if (stringNullOrEmpty(words.getLast())) {
                             words = words.subList(0, words.size() - 1);
                         }
                         Command command = commands.get(commandStr);
@@ -1078,7 +1061,7 @@ public class CommandProcessor implements Completer, Highlighter {
             }
         } else if (line.words().size() > 1) {
             List<String> words = line.words();
-            String commandStr = words.get(0);
+            String commandStr = words.getFirst();
             Command command = commands.get(commandStr);
             if (command != null) {
                 if (!line.words().contains("--") || line.wordIndex() < line.words().indexOf("--")) {
@@ -1087,8 +1070,7 @@ public class CommandProcessor implements Completer, Highlighter {
                         command.setupOptionParser(parser);
                         Map<OptionSpec<?>, String> firstEncounters = new HashMap<>();
                         for (Map.Entry<String, OptionSpec<?>> en : parser.recognizedOptions().entrySet()) {
-                            if (en.getValue() instanceof OptionDescriptor) {
-                                OptionDescriptor od = (OptionDescriptor) en.getValue();
+                            if (en.getValue() instanceof OptionDescriptor od) {
                                 if (od.representsNonOptions()) continue;
                                 String str = "-" + (en.getKey().length() > 1 ? "-" : "") + en.getKey();
                                 String key = firstEncounters.computeIfAbsent(en.getValue(), (spec) -> en.getKey());
@@ -1111,7 +1093,7 @@ public class CommandProcessor implements Completer, Highlighter {
         ParsedLine parsed = reader.getParser().parse(buffer, buffer.length(), ParseContext.COMPLETE);
         String commandStr;
         if (!parsed.words().isEmpty()) {
-            commandStr = parsed.words().get(0);
+            commandStr = parsed.words().getFirst();
         } else {
             commandStr = buffer;
         }

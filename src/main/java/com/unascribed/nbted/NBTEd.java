@@ -33,8 +33,9 @@ import io.github.steveice10.opennbt.tag.array.NBTIntArray;
 import io.github.steveice10.opennbt.tag.array.NBTLongArray;
 import io.github.steveice10.opennbt.tag.number.*;
 import joptsimple.*;
+import org.fusesource.jansi.AnsiConsole;
 import org.jline.builtins.Less;
-import org.jline.builtins.Source.URLSource;
+import org.jline.builtins.Source;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
@@ -143,7 +144,7 @@ public class NBTEd {
                 parser.acceptsAll(Arrays.asList("convert-nbt", "N"))
         );
         parser.acceptsAll(Arrays.asList("raw", "r"));
-        parser.acceptsAll(Arrays.asList("no-pager"));
+        parser.acceptsAll(List.of("no-pager"));
         parser.acceptsAll(Arrays.asList("version", "V"));
         parser.posixlyCorrect(System.getenv("POSIXLY_CORRECT") != null);
         NonOptionArgumentSpec<String> nonoption = parser.nonOptions().ofType(String.class);
@@ -201,7 +202,7 @@ public class NBTEd {
             sourceFile = null;
             inSupplier = null;
         } else {
-            String in = nonoptions.get(0);
+            String in = nonoptions.getFirst();
             if ("-".equals(in)) {
                 byte[] bys = System.in.readAllBytes();
                 inSupplier = () -> new ByteArrayInputStream(bys);
@@ -300,7 +301,6 @@ public class NBTEd {
                 compressionAutodetected = true;
             } else {
                 log("No compression specified for new buffer");
-                compressionMethod = null;
                 compressionAutodetected = false;
             }
         } else {
@@ -319,11 +319,9 @@ public class NBTEd {
         NBTTag tag = null;
         if (inSupplier != null) {
             try {
-                if (compressionMethod != null) {
-                    final Compression compressionMethodFinal = compressionMethod;
-                    final ExceptableSupplier<InputStream, IOException> currentSupplier = inSupplier;
-                    inSupplier = () -> compressionMethodFinal.wrap(currentSupplier.get());
-                }
+                final Compression compressionMethodFinal = compressionMethod;
+                final ExceptableSupplier<InputStream, IOException> currentSupplier = inSupplier;
+                inSupplier = () -> compressionMethodFinal.wrap(currentSupplier.get());
                 try (PushbackInputStream is = new PushbackInputStream(inSupplier.get())) {
                     int firstByte = is.read();
                     is.unread(firstByte);
@@ -361,7 +359,7 @@ public class NBTEd {
                 System.err.println("unbted: Failed to load " + (sourceFile == FileInfo.STDIN ? "(stdin)" : sourceFile.getAbsolutePath()));
                 if (!compressionAutodetected) {
                     System.err.println("unbted: Are you sure " + compressionMethod + " is the correct compression method?");
-                    if (detectedCompressionMethod != null && detectedCompressionMethod != compressionMethod) {
+                    if (detectedCompressionMethod != compressionMethod) {
                         System.err.println("unbted: It looks like " + detectedCompressionMethod + " to me");
                     }
                 } else if (isJson) {
@@ -395,7 +393,7 @@ public class NBTEd {
                     JsonObject obj = new JsonObject();
                     obj.addProperty("_unbted", 1);
                     obj.addProperty("rootType", getTypePrefix(tag));
-                    obj.addProperty("rootName", tag == null ? "" : tag.getName());
+                    obj.addProperty("rootName", tag.getName());
                     obj.add("root", e);
                     e = obj;
                 }
@@ -424,9 +422,14 @@ public class NBTEd {
     }
 
     private static void initializeTerminal() throws IOException {
-        terminal = TerminalBuilder.terminal();
+        AnsiConsole.systemInstall();
+        terminal = TerminalBuilder.builder()
+                .jansi(true)
+                .color(true)
+                .build();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
+                AnsiConsole.systemUninstall();
                 terminal.close();
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -519,7 +522,7 @@ public class NBTEd {
                     }
                     String innerType = type.substring(5, closer);
                     if ("?".equals(innerType)) {
-                        if (ele == null || ele.getAsJsonArray().size() == 0) {
+                        if (ele == null || ele.getAsJsonArray().isEmpty()) {
                             yield new NBTList(key);
                         } else {
                             throw new IllegalArgumentException("Cannot have list of unknown type with elements");
@@ -539,6 +542,8 @@ public class NBTEd {
     }
 
     public static JsonElement toJson(NBTTag tag, boolean roundTrip) {
+        if(tag == null) return JsonNull.INSTANCE;
+
         return switch(tag) {
             case NBTCompound compound -> JSONFromNBT.fromNBTCompound(roundTrip, compound);
             case NBTList list -> JSONFromNBT.fromNBTList(roundTrip, list);
@@ -548,7 +553,6 @@ public class NBTEd {
             case NBTIntArray iArr -> JSONFromNBT.fromIntArr(roundTrip, iArr);
             case NBTLongArray lArr -> JSONFromNBT.fromLongArr(lArr);
             default -> {
-                if(tag == null) yield JsonNull.INSTANCE;
                 throw new IllegalArgumentException("Don't know how to convert " + tag.getClass().getSimpleName() + " to JSON");
             }
         };
@@ -563,7 +567,7 @@ public class NBTEd {
                 out.add((roundTrip ? getTypePrefix(t) + ":" : "") + t.getName(), toJson(t, roundTrip));
             }
             if (!roundTrip) {
-                List<String> keys = out.keySet().stream().collect(Collectors.toCollection(ArrayList::new));
+                List<String> keys = new ArrayList<>(out.keySet());
                 Collections.sort(keys);
                 JsonObject sorted = new JsonObject();
                 for (String k : keys) {
@@ -573,9 +577,7 @@ public class NBTEd {
                     if (k.endsWith("Most") && out.has(k.replaceFirst("Most$", "Least"))) {
                         String basek = k.replaceFirst("Most$", "");
                         String k2 = basek + "Least";
-                        if (out.get(k) instanceof JsonPrimitive && out.get(k2) instanceof JsonPrimitive) {
-                            JsonPrimitive p1 = (JsonPrimitive) out.get(k);
-                            JsonPrimitive p2 = (JsonPrimitive) out.get(k2);
+                        if (out.get(k) instanceof JsonPrimitive p1 && out.get(k2) instanceof JsonPrimitive p2) {
                             if (p1.isNumber() && p2.isNumber()) {
                                 sorted.add(basek, new JsonPrimitive(new UUID(p1.getAsLong(), p2.getAsLong()).toString()));
                                 continue;
@@ -629,7 +631,7 @@ public class NBTEd {
     public static void displayEmbeddedFileInPager(String file) throws Exception {
         if (PAGER && !"dumb".equals(terminal.getType())) {
             Less less = new Less(NBTEd.terminal, new File("").toPath());
-            less.run((new ArrayList<>(List.of(new URLSource(ClassLoader.getSystemResource(file), file)))));
+            less.run((new ArrayList<>(List.of(new Source.InputStreamSource(ClassLoader.getSystemResourceAsStream(file), true, file)))));
         } else {
             try (var br = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream(file)))) {
                 System.err.println(br.lines().collect(Collectors.joining("\n")));
