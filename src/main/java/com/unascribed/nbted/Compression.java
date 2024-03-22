@@ -48,7 +48,6 @@ public enum Compression {
             case DEFLATE -> new InflaterInputStream(is);
             case GZIP -> new GZIPInputStream(is);
             case ZSTD -> new ZstdInputStream(is);
-            default -> throw new AssertionError("missing case for " + this);
         };
     }
 
@@ -59,7 +58,6 @@ public enum Compression {
             case DEFLATE -> new DeflaterOutputStream(os);
             case GZIP -> new GZIPOutputStream(os);
             case ZSTD -> new ZstdOutputStream(os);
-            default -> throw new AssertionError("missing case for " + this);
         };
     }
 

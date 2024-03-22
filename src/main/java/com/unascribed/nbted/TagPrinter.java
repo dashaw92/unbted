@@ -136,8 +136,8 @@ public class TagPrinter {
                                 if (infer) {
                                     if (t.getName().endsWith("Most") && ct.contains(t.getName().replaceFirst("Most$", "Least"))) {
                                         NBTTag least = ct.get(t.getName().replaceFirst("Most$", "Least"));
-                                        if (t instanceof NBTLong && least instanceof NBTLong) {
-                                            UUID u = new UUID(((NBTLong) t).longValue(), ((NBTLong) least).longValue());
+                                        if (t instanceof NBTLong msb && least instanceof NBTLong lsb) {
+                                            UUID u = new UUID(msb.longValue(), lsb.longValue());
                                             printBasic(tag, u.toString(), t.getName().replaceFirst("Most$", ""), "~uuid", AnsiCode.FG_YELLOW, childPrefix, values);
                                             continue;
                                         }
@@ -434,21 +434,16 @@ public class TagPrinter {
 
         public RecurseMode degradeForCompound() {
             return switch (this) {
-                case NONE -> NONE;
-                case IMMEDIATE_CHILDREN -> NONE;
-                case IMMEDIATE_CHILDREN_ONLY -> NONE;
+                case NONE, IMMEDIATE_CHILDREN, IMMEDIATE_CHILDREN_ONLY -> NONE;
                 case FULL -> FULL;
-                default -> throw new AssertionError("missing case for " + this);
             };
         }
 
         public RecurseMode degradeForList() {
             return switch (this) {
-                case NONE -> NONE;
-                case IMMEDIATE_CHILDREN -> NONE;
+                case NONE, IMMEDIATE_CHILDREN -> NONE;
                 case IMMEDIATE_CHILDREN_ONLY -> IMMEDIATE_CHILDREN;
                 case FULL -> FULL;
-                default -> throw new AssertionError("missing case for " + this);
             };
         }
     }

@@ -34,8 +34,6 @@ import io.github.steveice10.opennbt.tag.array.NBTLongArray;
 import io.github.steveice10.opennbt.tag.number.*;
 import joptsimple.*;
 import org.fusesource.jansi.AnsiConsole;
-import org.jline.builtins.Less;
-import org.jline.builtins.Source;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
@@ -70,7 +68,6 @@ public class NBTEd {
     public static boolean VERBOSE = true;
     public static JsonMode JSON_MODE = JsonMode.NONE;
     public static boolean INFER = true;
-    public static boolean PAGER = true;
     public static Terminal terminal;
 
     static {
@@ -86,8 +83,8 @@ public class NBTEd {
     public static void log(String msg, Object... args) {
         if (VERBOSE) {
             Throwable t = null;
-            if (args.length > 0 && args[args.length - 1] instanceof Throwable) {
-                t = (Throwable) args[args.length - 1];
+            if (args.length > 0 && args[args.length - 1] instanceof Throwable throwable) {
+                t = throwable;
                 args = Arrays.copyOfRange(args, 0, args.length - 1);
             }
             System.err.print("unbted: ");
@@ -144,7 +141,7 @@ public class NBTEd {
                 parser.acceptsAll(Arrays.asList("convert-nbt", "N"))
         );
         parser.acceptsAll(Arrays.asList("raw", "r"));
-        parser.acceptsAll(List.of("no-pager"));
+//        parser.acceptsAll(List.of("no-pager"));
         parser.acceptsAll(Arrays.asList("version", "V"));
         parser.posixlyCorrect(System.getenv("POSIXLY_CORRECT") != null);
         NonOptionArgumentSpec<String> nonoption = parser.nonOptions().ofType(String.class);
@@ -173,10 +170,6 @@ public class NBTEd {
             for (Handler h : root.getHandlers()) {
                 root.removeHandler(h);
             }
-        }
-
-        if (set.has("no-pager")) {
-            PAGER = false;
         }
 
         if (set.has("help")) {
@@ -462,8 +455,7 @@ public class NBTEd {
     public static String getTypePrefix(NBTTag tag) {
         if (tag == null) {
             return "null";
-        } else if (tag instanceof NBTList) {
-            NBTList li = (NBTList) tag;
+        } else if (tag instanceof NBTList li) {
             if (li.getElementType() != null) {
                 return "list<" + getTypePrefix(li.get(0)) + ">";
             }
@@ -624,20 +616,14 @@ public class NBTEd {
         System.err.println("See `unbted --help` for detailed usage information");
     }
 
-    private static void printHelp() throws Exception {
+    private static void printHelp() {
         displayEmbeddedFileInPager("switches-help.txt");
     }
 
-    public static void displayEmbeddedFileInPager(String file) throws Exception {
-        if (PAGER && !"dumb".equals(terminal.getType())) {
-            Less less = new Less(NBTEd.terminal, new File("").toPath());
-            less.run((new ArrayList<>(List.of(new Source.InputStreamSource(ClassLoader.getSystemResourceAsStream(file), true, file)))));
-        } else {
-            try (var br = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream(file)))) {
-                System.err.println(br.lines().collect(Collectors.joining("\n")));
-            } catch (IOException ignored) {
-            }
-        }
+    public static void displayEmbeddedFileInPager(String file) {
+        try (var br = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream(file)))) {
+            System.err.println(br.lines().collect(Collectors.joining("\n")));
+        } catch (IOException ignored) {}
     }
 
 }

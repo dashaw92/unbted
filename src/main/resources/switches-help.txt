@@ -68,9 +68,6 @@ Valid options:
 	
 	-r, --raw
 		Don't infer types.
-
-	--no-pager
-		Disable use of the embedded less-like pager.
 	
 	-V, --version
 		Print the version of unbted and exit.
