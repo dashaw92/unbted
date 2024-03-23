@@ -77,7 +77,7 @@ public class CommandProcessor implements Completer, Highlighter {
     private NBTTag cursor;
     private boolean dirty = false;
 
-    public CommandProcessor(NBTTag _root, TagPrinter _printer, FileInfo _fileInfo) {
+    public CommandProcessor(NBTEd inst, NBTTag _root, TagPrinter _printer, FileInfo _fileInfo) {
         this.root = _root;
         this.cursor = root;
         this.printer = _printer;
@@ -185,7 +185,7 @@ public class CommandProcessor implements Completer, Highlighter {
                     parser.acceptsAll(Arrays.asList("l", "1", "a", "A"), "ignored");
                 })
                 .action((alias, set, args) -> {
-                    boolean infer = NBTEd.INFER;
+                    boolean infer = inst.INFER;
                     if (set.has("raw")) {
                         infer = false;
                     }
@@ -255,7 +255,7 @@ public class CommandProcessor implements Completer, Highlighter {
                             }
                             int idx = contextParents.indexOf(t);
                             if (idx != -1) {
-                                NBTEd.log("Deleted parent of current context, walking up to closest non-deleted path");
+                                inst.log("Deleted parent of current context, walking up to closest non-deleted path");
                                 contextParents.subList(0, idx + 1).clear();
                                 if (contextParents.isEmpty()) {
                                     cursor = null;
@@ -483,7 +483,7 @@ public class CommandProcessor implements Completer, Highlighter {
                             dirty = false;
                         }
                     } catch (Exception e) {
-                        NBTEd.log("Error occurred while writing", e);
+                        inst.log("Error occurred while writing", e);
                         // TODO detect common exceptions and print useful messages
                         throw new CommandException(VALUE_GENERAL_ERROR, "An error occurred while writing");
                     }
@@ -954,7 +954,7 @@ public class CommandProcessor implements Completer, Highlighter {
         }
     }
 
-    public void run() throws Exception {
+    public void run(NBTEd inst) throws Exception {
         if (running) return;
         reader = LineReaderBuilder.builder()
                 .appName("unbted")
@@ -995,7 +995,7 @@ public class CommandProcessor implements Completer, Highlighter {
                             try {
                                 command.execute(commandStr, words.subList(1, words.size()));
                             } catch (CommandException e) {
-                                if (NBTEd.VERBOSE) {
+                                if (inst.VERBOSE) {
                                     e.printStackTrace();
                                 }
                                 System.err.println(reader.getAppName() + ": " + commandStr + ": " + e.getMessage());
@@ -1078,7 +1078,7 @@ public class CommandProcessor implements Completer, Highlighter {
                             }
                         }
                     } catch (Exception e) {
-                        NBTEd.log("Exception while attempting to complete options", e);
+//                        NBTEd.log("Exception while attempting to complete options", e);
                     }
 
                 }

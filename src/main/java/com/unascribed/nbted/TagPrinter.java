@@ -103,7 +103,7 @@ public class TagPrinter {
     }
 
     public void printTag(NBTTag tag, String prefix) {
-        printTag(tag, prefix, NBTEd.INFER);
+        printTag(tag, prefix, true);
     }
 
     public void printTag(NBTTag tag, String prefix, boolean infer) {
